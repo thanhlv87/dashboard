@@ -90,15 +90,48 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
     toast.success('Đã tải file mẫu!');
   };
 
-  // Parse date from dd/mm/yyyy format
-  const parseDate = (dateStr: string): Date | null => {
-    if (!dateStr || dateStr.trim() === '') return null;
-    const parts = dateStr.split('/');
-    if (parts.length !== 3) return null;
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
-    const year = parseInt(parts[2], 10);
-    return new Date(year, month, day);
+  // Parse date from various formats
+  const parseDate = (dateValue: any): Date | null => {
+    if (!dateValue) return null;
+
+    // If already a Date object (from cellDates: true)
+    if (dateValue instanceof Date) {
+      // Check if valid date
+      if (isNaN(dateValue.getTime())) return null;
+      // Adjust for timezone offset if needed, but usually xlsx handles local time reasonably well
+      // or returns UTC. For simplicity, we assume it's correct date.
+      return dateValue;
+    }
+
+    // If string
+    if (typeof dateValue === 'string') {
+      const dateStr = dateValue.trim();
+      if (dateStr === '') return null;
+
+      // Try dd/mm/yyyy
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        const day = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const year = parseInt(parts[2], 10);
+        const date = new Date(year, month, day);
+        if (!isNaN(date.getTime())) return date;
+      }
+
+      // Try standard parsing
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) return date;
+    }
+
+    // If number (Excel serial date, though cellDates: true should avoid this)
+    if (typeof dateValue === 'number') {
+      // Excel serial date to JS Date
+      // (serial - 25569) * 86400 * 1000
+      const date = new Date((dateValue - 25569) * 86400 * 1000);
+      if (!isNaN(date.getTime())) return date;
+    }
+
+    return null;
   };
 
   // Handle file selection and preview
@@ -118,10 +151,10 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
     reader.onload = (evt) => {
       try {
         const data = evt.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
+        const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { cellDates: true, defval: '' });
 
         setPreviewData(jsonData.slice(0, 5)); // Show first 5 rows
         toast.success(`Đã tải ${jsonData.length} dòng dữ liệu`);
@@ -147,10 +180,10 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
       reader.onload = async (evt) => {
         try {
           const data = evt.target?.result;
-          const workbook = XLSX.read(data, { type: 'binary' });
+          const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet);
+          const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { cellDates: true, defval: '' });
 
           // Convert Excel data to TeachingSchedule format
           const schedules: Omit<TeachingSchedule, 'id'>[] = [];

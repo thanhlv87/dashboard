@@ -116,8 +116,8 @@ const CalendarView = () => {
     return schedules.filter(schedule => {
       const scheduleDate = schedule.date.toDate();
       return scheduleDate.getDate() === day &&
-        scheduleDate.getMonth() === currentMonth &&
-        scheduleDate.getFullYear() === currentYear;
+             scheduleDate.getMonth() === currentMonth &&
+             scheduleDate.getFullYear() === currentYear;
     });
   };
 
@@ -191,8 +191,8 @@ const CalendarView = () => {
                 {dates.map((d, i) => {
                   const daySchedules = d ? getSchedulesForDay(d) : [];
                   const isToday = d === currentDate.getDate() &&
-                    currentMonth === currentDate.getMonth() &&
-                    currentYear === currentDate.getFullYear();
+                                 currentMonth === currentDate.getMonth() &&
+                                 currentYear === currentDate.getFullYear();
                   const isSelected = d === selectedDay;
 
                   return (
@@ -200,10 +200,11 @@ const CalendarView = () => {
                       {d && (
                         <div
                           onClick={() => setSelectedDay(d)}
-                          className={`size-full max-w-[48px] max-h-[48px] rounded-full flex items-center justify-center text-sm font-medium relative hover:bg-surface-light/50 cursor-pointer transition-colors ${isToday ? 'bg-primary text-background-dark' :
-                              isSelected ? 'bg-surface-light text-white ring-2 ring-primary' :
-                                'text-white'
-                            }`}
+                          className={`size-full max-w-[48px] max-h-[48px] rounded-full flex items-center justify-center text-sm font-medium relative hover:bg-surface-light/50 cursor-pointer transition-colors ${
+                            isToday ? 'bg-primary text-background-dark' :
+                            isSelected ? 'bg-surface-light text-white ring-2 ring-primary' :
+                            'text-white'
+                          }`}
                         >
                           {d}
                           {/* Event indicators */}
@@ -261,11 +262,12 @@ const CalendarView = () => {
                               <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-400">
                                 <span className="material-symbols-outlined text-xs">group</span> {schedule.studentCount} học viên
                               </span>
-                              <span className={`text-xs px-2 py-1 rounded-full ${schedule.status === 'Đã giảng' ? 'bg-green-500/20 text-green-400' :
-                                  schedule.status === 'Chưa giảng' ? 'bg-yellow-500/20 text-yellow-400' :
-                                    schedule.status === 'Đang xếp' ? 'bg-purple-500/20 text-purple-400' :
-                                      'bg-gray-500/20 text-gray-400'
-                                }`}>
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                schedule.status === 'Đã giảng' ? 'bg-green-500/20 text-green-400' :
+                                schedule.status === 'Chưa giảng' ? 'bg-yellow-500/20 text-yellow-400' :
+                                schedule.status === 'Đang xếp' ? 'bg-purple-500/20 text-purple-400' :
+                                'bg-gray-500/20 text-gray-400'
+                              }`}>
                                 {schedule.status}
                               </span>
                             </div>
@@ -304,33 +306,34 @@ const CalendarView = () => {
                   .filter(schedule => schedule.date.toDate() >= today) // Only show future schedules
                   .slice(0, 10)
                   .map(schedule => (
-                    <div
-                      key={schedule.id}
-                      onClick={() => handleScheduleClick(schedule)}
-                      className="p-3 bg-surface-light rounded-lg hover:bg-surface-light/70 transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 bg-primary/20 rounded-lg flex flex-col items-center justify-center shrink-0">
-                          <p className="text-primary text-xs font-bold">{schedule.date.toDate().toLocaleDateString('vi-VN', { month: 'short' })}</p>
-                          <p className="text-white text-lg font-bold">{schedule.date.toDate().getDate()}</p>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-medium truncate">{schedule.company}</p>
-                          <p className="text-text-muted text-xs">{schedule.startTime} - {schedule.endTime}</p>
-                          <p className="text-text-muted text-xs truncate">{schedule.location}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${schedule.status === 'Đã giảng' ? 'bg-green-500/20 text-green-400' :
-                                schedule.status === 'Chưa giảng' ? 'bg-yellow-500/20 text-yellow-400' :
-                                  schedule.status === 'Đang xếp' ? 'bg-purple-500/20 text-purple-400' :
-                                    'bg-gray-500/20 text-gray-400'
-                              }`}>
-                              {schedule.status}
-                            </span>
-                          </div>
+                  <div
+                    key={schedule.id}
+                    onClick={() => handleScheduleClick(schedule)}
+                    className="p-3 bg-surface-light rounded-lg hover:bg-surface-light/70 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-12 h-12 bg-primary/20 rounded-lg flex flex-col items-center justify-center shrink-0">
+                        <p className="text-primary text-xs font-bold">{schedule.date.toDate().toLocaleDateString('vi-VN', { month: 'short' })}</p>
+                        <p className="text-white text-lg font-bold">{schedule.date.toDate().getDate()}</p>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-medium truncate">{schedule.company}</p>
+                        <p className="text-text-muted text-xs">{schedule.startTime} - {schedule.endTime}</p>
+                        <p className="text-text-muted text-xs truncate">{schedule.location}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            schedule.status === 'Đã giảng' ? 'bg-green-500/20 text-green-400' :
+                            schedule.status === 'Chưa giảng' ? 'bg-yellow-500/20 text-yellow-400' :
+                            schedule.status === 'Đang xếp' ? 'bg-purple-500/20 text-purple-400' :
+                            'bg-gray-500/20 text-gray-400'
+                          }`}>
+                            {schedule.status}
+                          </span>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -532,30 +535,9 @@ const Teaching = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col lg:flex-row h-full bg-background-dark overflow-hidden">
-      {/* Mobile Navigation Tabs */}
-      <div className="lg:hidden flex border-b border-border-color bg-surface shrink-0">
-        <NavLink
-          to="/teaching"
-          end
-          className={({ isActive }) => `flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium border-b-2 transition-colors ${isActive ? 'border-primary text-primary bg-surface-light/50' : 'border-transparent text-text-muted hover:text-white'
-            }`}
-        >
-          <span className="material-symbols-outlined text-xl">calendar_month</span>
-          Lịch giảng
-        </NavLink>
-        <NavLink
-          to="/teaching/partners"
-          className={({ isActive }) => `flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium border-b-2 transition-colors ${isActive ? 'border-primary text-primary bg-surface-light/50' : 'border-transparent text-text-muted hover:text-white'
-            }`}
-        >
-          <span className="material-symbols-outlined text-xl">group</span>
-          Đối tác
-        </NavLink>
-      </div>
-
-      {/* Desktop Sidebar Navigation */}
-      <div className="hidden lg:flex w-64 border-r border-border-color flex-col p-4 shrink-0">
+    <div className="flex h-full bg-background-dark">
+      {/* Sidebar Navigation */}
+      <div className="w-64 border-r border-border-color flex flex-col p-4">
         <div className="mb-6">
           <h2 className="text-white text-xl font-bold px-3">Đào tạo</h2>
         </div>
@@ -564,8 +546,9 @@ const Teaching = () => {
           <NavLink
             to="/teaching"
             end
-            className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isActive ? 'bg-surface-light text-primary' : 'text-text-muted hover:bg-surface-light hover:text-white'
-              }`}
+            className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              isActive ? 'bg-surface-light text-primary' : 'text-text-muted hover:bg-surface-light hover:text-white'
+            }`}
           >
             <span className="material-symbols-outlined text-xl">calendar_month</span>
             <span className="text-sm font-medium">Lịch giảng</span>
@@ -573,8 +556,9 @@ const Teaching = () => {
 
           <NavLink
             to="/teaching/partners"
-            className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${isActive ? 'bg-surface-light text-primary' : 'text-text-muted hover:bg-surface-light hover:text-white'
-              }`}
+            className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              isActive ? 'bg-surface-light text-primary' : 'text-text-muted hover:bg-surface-light hover:text-white'
+            }`}
           >
             <span className="material-symbols-outlined text-xl">group</span>
             <span className="text-sm font-medium">Đối tác</span>
@@ -583,12 +567,10 @@ const Teaching = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
-        <Routes>
-          <Route path="/" element={<CalendarView />} />
-          <Route path="/partners" element={<PartnersDashboard />} />
-        </Routes>
-      </div>
+      <Routes>
+        <Route path="/" element={<CalendarView />} />
+        <Route path="/partners" element={<PartnersDashboard />} />
+      </Routes>
     </div>
   );
 };

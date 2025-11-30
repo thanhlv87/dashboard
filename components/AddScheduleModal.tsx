@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,13 +33,20 @@ interface AddScheduleModalProps {
 
 export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const { currentUser } = useAuth();
-  const { data: partners, loading: partnersLoading } = useFirestore<Partner>('partners', [orderBy('name', 'asc')]);
+  const { data: partners, loading: partnersLoading, add: addPartner } = useFirestore<Partner>('partners', [orderBy('name', 'asc')]);
+
+  const [isAddingNewPartner, setIsAddingNewPartner] = useState(false);
+  const [newPartnerName, setNewPartnerName] = useState('');
+  const [newPartnerContact, setNewPartnerContact] = useState('');
+  const [newPartnerPhone, setNewPartnerPhone] = useState('');
+  const [newPartnerEmail, setNewPartnerEmail] = useState('');
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
     reset,
+    setValue,
   } = useForm<ScheduleFormData>({
     resolver: zodResolver(scheduleSchema),
     defaultValues: {
@@ -51,6 +58,51 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
 
   const studentTypes = ['Cán bộ', 'Công nhân', 'Quản lý', 'Chuyên viên', 'Khác'];
   const statuses = ['Chưa giảng', 'Đã giảng', 'Đang xếp', 'Hủy'];
+
+  const handleAddNewPartner = async () => {
+    if (!newPartnerName.trim()) {
+      toast.error('Vui lòng nhập tên đối tác');
+      return;
+    }
+    if (!newPartnerContact.trim()) {
+      toast.error('Vui lòng nhập người liên hệ');
+      return;
+    }
+    if (!newPartnerPhone.trim()) {
+      toast.error('Vui lòng nhập số điện thoại');
+      return;
+    }
+    if (!newPartnerEmail.trim()) {
+      toast.error('Vui lòng nhập email');
+      return;
+    }
+
+    try {
+      const partnerData = {
+        name: newPartnerName.trim(),
+        contactPerson: newPartnerContact.trim(),
+        phone: newPartnerPhone.trim(),
+        email: newPartnerEmail.trim(),
+        totalClasses: 0,
+        createdAt: Timestamp.now(),
+      };
+
+      await addPartner(partnerData);
+      toast.success(`Đã thêm đối tác "${newPartnerName}"`);
+
+      // Set the new partner as selected
+      setValue('partner', newPartnerName.trim());
+
+      // Reset form
+      setNewPartnerName('');
+      setNewPartnerContact('');
+      setNewPartnerPhone('');
+      setNewPartnerEmail('');
+      setIsAddingNewPartner(false);
+    } catch (error: any) {
+      toast.error('Lỗi khi thêm đối tác: ' + error.message);
+    }
+  };
 
   const onSubmitForm = async (data: ScheduleFormData) => {
     try {
@@ -181,30 +233,86 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Partner */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">
-                Đối tác thuê <span className="text-red-400">*</span>
-              </label>
-              <select
-                {...register('partner')}
-                className="w-full px-4 py-3 bg-surface-light border border-border-color rounded-lg text-white focus:outline-none focus:border-primary transition-colors"
-                disabled={partnersLoading}
-              >
-                <option value="">-- Chọn đối tác --</option>
-                {partners.map(p => (
-                  <option key={p.id} value={p.name}>{p.name}</option>
-                ))}
-              </select>
-              {partnersLoading && (
-                <p className="text-text-muted text-sm mt-1 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm animate-spin">refresh</span>
-                  Đang tải danh sách đối tác...
-                </p>
-              )}
-              {errors.partner && (
-                <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">error</span>
-                  {errors.partner.message}
-                </p>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-white text-sm font-medium">
+                  Đối tác thuê <span className="text-red-400">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingNewPartner(!isAddingNewPartner)}
+                  className="text-primary text-sm font-medium hover:underline flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    {isAddingNewPartner ? 'close' : 'add'}
+                  </span>
+                  {isAddingNewPartner ? 'Đóng' : 'Thêm mới'}
+                </button>
+              </div>
+
+              {!isAddingNewPartner ? (
+                <>
+                  <select
+                    {...register('partner')}
+                    className="w-full px-4 py-3 bg-surface-light border border-border-color rounded-lg text-white focus:outline-none focus:border-primary transition-colors"
+                    disabled={partnersLoading}
+                  >
+                    <option value="">-- Chọn đối tác --</option>
+                    {partners.map(p => (
+                      <option key={p.id} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
+                  {partnersLoading && (
+                    <p className="text-text-muted text-sm mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm animate-spin">refresh</span>
+                      Đang tải danh sách đối tác...
+                    </p>
+                  )}
+                  {errors.partner && (
+                    <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">error</span>
+                      {errors.partner.message}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <div className="space-y-3 p-4 bg-surface-light border border-border-color rounded-lg">
+                  <input
+                    type="text"
+                    placeholder="Tên đối tác *"
+                    value={newPartnerName}
+                    onChange={(e) => setNewPartnerName(e.target.value)}
+                    className="w-full px-3 py-2 bg-surface border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary text-sm"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Người liên hệ *"
+                    value={newPartnerContact}
+                    onChange={(e) => setNewPartnerContact(e.target.value)}
+                    className="w-full px-3 py-2 bg-surface border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary text-sm"
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Số điện thoại *"
+                    value={newPartnerPhone}
+                    onChange={(e) => setNewPartnerPhone(e.target.value)}
+                    className="w-full px-3 py-2 bg-surface border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary text-sm"
+                  />
+                  <input
+                    type="email"
+                    placeholder="Email *"
+                    value={newPartnerEmail}
+                    onChange={(e) => setNewPartnerEmail(e.target.value)}
+                    className="w-full px-3 py-2 bg-surface border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary text-sm"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddNewPartner}
+                    className="w-full px-3 py-2 bg-primary hover:bg-opacity-90 text-background-dark rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-sm">check</span>
+                    Lưu đối tác mới
+                  </button>
+                </div>
               )}
             </div>
 

@@ -135,36 +135,36 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-surface rounded-xl border border-border-color w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-surface rounded-xl border border-border-color w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border-color sticky top-0 bg-surface z-10">
-          <h2 className="text-white text-xl font-bold">Thêm Lịch Giảng Mới</h2>
+        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-border-color sticky top-0 bg-surface z-10">
+          <h2 className="text-white text-lg sm:text-xl font-bold">Thêm Lịch Giảng Mới</h2>
           <button
             onClick={onClose}
-            className="text-text-muted hover:text-white transition-colors"
+            className="text-text-muted hover:text-white transition-colors -mr-2 sm:mr-0"
             type="button"
           >
-            <span className="material-symbols-outlined text-2xl">close</span>
+            <span className="material-symbols-outlined text-xl sm:text-2xl">close</span>
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmitForm)} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit(onSubmitForm)} className="p-4 sm:p-6 space-y-4 sm:space-y-5">
           {/* Date & Time Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Date */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">
+              <label className="block text-white text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">
                 Ngày giảng <span className="text-red-400">*</span>
               </label>
               <input
                 {...register('date')}
                 type="date"
-                className="w-full px-4 py-3 bg-surface-light border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-surface-light border border-border-color rounded-lg text-white text-sm placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
               />
               {errors.date && (
-                <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
+                <p className="text-red-400 text-xs sm:text-sm mt-1 flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">error</span>
                   {errors.date.message}
                 </p>
@@ -173,17 +173,17 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
 
             {/* Start Time */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">
+              <label className="block text-white text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">
                 Giờ bắt đầu <span className="text-red-400">*</span>
               </label>
               <input
                 {...register('startTime')}
                 type="time"
                 placeholder="08:00"
-                className="w-full px-4 py-3 bg-surface-light border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-surface-light border border-border-color rounded-lg text-white text-sm placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
               />
               {errors.startTime && (
-                <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
+                <p className="text-red-400 text-xs sm:text-sm mt-1 flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">error</span>
                   {errors.startTime.message}
                 </p>
@@ -192,17 +192,17 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
 
             {/* End Time */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">
+              <label className="block text-white text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">
                 Giờ kết thúc <span className="text-red-400">*</span>
               </label>
               <input
                 {...register('endTime')}
                 type="time"
                 placeholder="11:30"
-                className="w-full px-4 py-3 bg-surface-light border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-surface-light border border-border-color rounded-lg text-white text-sm placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
               />
               {errors.endTime && (
-                <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
+                <p className="text-red-400 text-xs sm:text-sm mt-1 flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">error</span>
                   {errors.endTime.message}
                 </p>
@@ -212,17 +212,17 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
 
           {/* Location */}
           <div>
-            <label className="block text-white text-sm font-medium mb-2">
+            <label className="block text-white text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">
               Địa điểm <span className="text-red-400">*</span>
             </label>
             <input
               {...register('location')}
               type="text"
               placeholder="VD: Phòng A101, Tầng 5"
-              className="w-full px-4 py-3 bg-surface-light border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-surface-light border border-border-color rounded-lg text-white text-sm placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
             />
             {errors.location && (
-              <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
+              <p className="text-red-400 text-xs sm:text-sm mt-1 flex items-center gap-1">
                 <span className="material-symbols-outlined text-sm">error</span>
                 {errors.location.message}
               </p>
@@ -233,19 +233,19 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Partner */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-white text-sm font-medium">
+              <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+                <label className="block text-white text-xs sm:text-sm font-medium">
                   Đối tác thuê <span className="text-red-400">*</span>
                 </label>
                 <button
                   type="button"
                   onClick={() => setIsAddingNewPartner(!isAddingNewPartner)}
-                  className="text-primary text-sm font-medium hover:underline flex items-center gap-1"
+                  className="text-primary text-xs sm:text-sm font-medium hover:underline flex items-center gap-0.5 sm:gap-1"
                 >
-                  <span className="material-symbols-outlined text-sm">
+                  <span className="material-symbols-outlined text-base sm:text-sm">
                     {isAddingNewPartner ? 'close' : 'add'}
                   </span>
-                  {isAddingNewPartner ? 'Đóng' : 'Thêm mới'}
+                  <span className="hidden sm:inline">{isAddingNewPartner ? 'Đóng' : 'Thêm mới'}</span>
                 </button>
               </div>
 
@@ -253,7 +253,7 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
                 <>
                   <select
                     {...register('partner')}
-                    className="w-full px-4 py-3 bg-surface-light border border-border-color rounded-lg text-white focus:outline-none focus:border-primary transition-colors"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-surface-light border border-border-color rounded-lg text-white text-sm focus:outline-none focus:border-primary transition-colors"
                     disabled={partnersLoading}
                   >
                     <option value="">-- Chọn đối tác --</option>
@@ -262,20 +262,20 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
                     ))}
                   </select>
                   {partnersLoading && (
-                    <p className="text-text-muted text-sm mt-1 flex items-center gap-1">
+                    <p className="text-text-muted text-xs sm:text-sm mt-1 flex items-center gap-1">
                       <span className="material-symbols-outlined text-sm animate-spin">refresh</span>
                       Đang tải danh sách đối tác...
                     </p>
                   )}
                   {errors.partner && (
-                    <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
+                    <p className="text-red-400 text-xs sm:text-sm mt-1 flex items-center gap-1">
                       <span className="material-symbols-outlined text-sm">error</span>
                       {errors.partner.message}
                     </p>
                   )}
                 </>
               ) : (
-                <div className="space-y-3 p-4 bg-surface-light border border-border-color rounded-lg">
+                <div className="space-y-2.5 sm:space-y-3 p-3 sm:p-4 bg-surface-light border border-border-color rounded-lg">
                   <input
                     type="text"
                     placeholder="Tên đối tác *"
@@ -318,17 +318,17 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
 
             {/* Company */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">
+              <label className="block text-white text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">
                 Công ty <span className="text-red-400">*</span>
               </label>
               <input
                 {...register('company')}
                 type="text"
                 placeholder="VD: Công ty ABC"
-                className="w-full px-4 py-3 bg-surface-light border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-surface-light border border-border-color rounded-lg text-white text-sm placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
               />
               {errors.company && (
-                <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
+                <p className="text-red-400 text-xs sm:text-sm mt-1 flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">error</span>
                   {errors.company.message}
                 </p>
@@ -340,12 +340,12 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Student Type */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">
+              <label className="block text-white text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">
                 Loại học viên <span className="text-red-400">*</span>
               </label>
               <select
                 {...register('studentType')}
-                className="w-full px-4 py-3 bg-surface-light border border-border-color rounded-lg text-white focus:outline-none focus:border-primary transition-colors"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-surface-light border border-border-color rounded-lg text-white text-sm focus:outline-none focus:border-primary transition-colors"
               >
                 <option value="">-- Chọn loại học viên --</option>
                 {studentTypes.map(type => (
@@ -353,7 +353,7 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
                 ))}
               </select>
               {errors.studentType && (
-                <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
+                <p className="text-red-400 text-xs sm:text-sm mt-1 flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">error</span>
                   {errors.studentType.message}
                 </p>
@@ -362,17 +362,17 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
 
             {/* Student Count */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">
+              <label className="block text-white text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">
                 Số lượng học viên <span className="text-red-400">*</span>
               </label>
               <input
                 {...register('studentCount', { valueAsNumber: true })}
                 type="number"
                 placeholder="25"
-                className="w-full px-4 py-3 bg-surface-light border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-surface-light border border-border-color rounded-lg text-white text-sm placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
               />
               {errors.studentCount && (
-                <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
+                <p className="text-red-400 text-xs sm:text-sm mt-1 flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">error</span>
                   {errors.studentCount.message}
                 </p>
@@ -384,7 +384,7 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Fee */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">
+              <label className="block text-white text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">
                 Học phí (VNĐ) <span className="text-red-400">*</span>
               </label>
               <input
@@ -392,10 +392,10 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
                 type="number"
                 step="100000"
                 placeholder="5000000"
-                className="w-full px-4 py-3 bg-surface-light border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-surface-light border border-border-color rounded-lg text-white text-sm placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
               />
               {errors.fee && (
-                <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
+                <p className="text-red-400 text-xs sm:text-sm mt-1 flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">error</span>
                   {errors.fee.message}
                 </p>
@@ -404,31 +404,31 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
 
             {/* Payment Date */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">
+              <label className="block text-white text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">
                 Ngày thanh toán
               </label>
               <input
                 {...register('paymentDate')}
                 type="date"
-                className="w-full px-4 py-3 bg-surface-light border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-surface-light border border-border-color rounded-lg text-white text-sm placeholder-text-muted focus:outline-none focus:border-primary transition-colors"
               />
             </div>
 
             {/* Status */}
             <div>
-              <label className="block text-white text-sm font-medium mb-2">
+              <label className="block text-white text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">
                 Trạng thái <span className="text-red-400">*</span>
               </label>
               <select
                 {...register('status')}
-                className="w-full px-4 py-3 bg-surface-light border border-border-color rounded-lg text-white focus:outline-none focus:border-primary transition-colors"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-surface-light border border-border-color rounded-lg text-white text-sm focus:outline-none focus:border-primary transition-colors"
               >
                 {statuses.map(status => (
                   <option key={status} value={status}>{status}</option>
                 ))}
               </select>
               {errors.status && (
-                <p className="text-red-400 text-sm mt-1 flex items-center gap-1">
+                <p className="text-red-400 text-xs sm:text-sm mt-1 flex items-center gap-1">
                   <span className="material-symbols-outlined text-sm">error</span>
                   {errors.status.message}
                 </p>
@@ -438,26 +438,26 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
 
           {/* Notes */}
           <div>
-            <label className="block text-white text-sm font-medium mb-2">
+            <label className="block text-white text-xs sm:text-sm font-medium mb-1.5 sm:mb-2">
               Ghi chú
             </label>
             <textarea
               {...register('notes')}
               rows={3}
               placeholder="Ghi chú về buổi giảng..."
-              className="w-full px-4 py-3 bg-surface-light border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary transition-colors resize-none"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-surface-light border border-border-color rounded-lg text-white text-sm placeholder-text-muted focus:outline-none focus:border-primary transition-colors resize-none"
             />
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-border-color">
+          <div className="flex gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-border-color">
             <button
               type="button"
               onClick={() => {
                 reset();
                 onClose();
               }}
-              className="flex-1 px-4 py-3 bg-surface-light hover:bg-surface text-white rounded-lg font-medium transition-colors"
+              className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-surface-light hover:bg-surface text-white rounded-lg font-medium text-sm sm:text-base transition-colors"
               disabled={isSubmitting}
             >
               Hủy
@@ -465,17 +465,19 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-3 bg-primary hover:bg-opacity-90 text-background-dark rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-primary hover:bg-opacity-90 text-background-dark rounded-lg font-bold text-sm sm:text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 sm:gap-2"
             >
               {isSubmitting ? (
                 <>
-                  <span className="material-symbols-outlined text-xl animate-spin">refresh</span>
-                  Đang lưu...
+                  <span className="material-symbols-outlined text-lg sm:text-xl animate-spin">refresh</span>
+                  <span className="hidden sm:inline">Đang lưu...</span>
+                  <span className="sm:hidden">Lưu...</span>
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-xl">event</span>
-                  Thêm Lịch Giảng
+                  <span className="material-symbols-outlined text-lg sm:text-xl">event</span>
+                  <span className="hidden sm:inline">Thêm Lịch Giảng</span>
+                  <span className="sm:hidden">Thêm</span>
                 </>
               )}
             </button>

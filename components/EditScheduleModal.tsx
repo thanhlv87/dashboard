@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { Timestamp, orderBy } from 'firebase/firestore';
 import { useFirestore } from '../hooks/useFirestore';
-import { Partner } from '../lib/firebase/types';
+import { Partner, TeachingSchedule } from '../lib/firebase/types';
 
 const scheduleSchema = z.object({
   date: z.string().min(1, 'Vui lòng chọn ngày giảng'),
@@ -25,13 +25,21 @@ const scheduleSchema = z.object({
 
 type ScheduleFormData = z.infer<typeof scheduleSchema>;
 
-interface AddScheduleModalProps {
+interface EditScheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => Promise<void>;
+  schedule: TeachingSchedule | null;
+  onUpdate: (id: string, data: Partial<TeachingSchedule>) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
 }
 
-export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onClose, onSubmit }) => {
+export const EditScheduleModal: React.FC<EditScheduleModalProps> = ({
+  isOpen,
+  onClose,
+  schedule,
+  onUpdate,
+  onDelete,
+}) => {
   const { currentUser } = useAuth();
   const { data: partners, loading: partnersLoading } = useFirestore<Partner>('partners', [orderBy('name', 'asc')]);
 
@@ -42,19 +50,39 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
     reset,
   } = useForm<ScheduleFormData>({
     resolver: zodResolver(scheduleSchema),
-    defaultValues: {
-      status: 'Chưa giảng',
-      studentCount: 0,
-      fee: 0,
-    },
   });
+
+  // Load schedule data when modal opens
+  useEffect(() => {
+    if (schedule) {
+      const scheduleDate = schedule.date.toDate();
+      const paymentDate = schedule.paymentDate?.toDate();
+
+      reset({
+        date: scheduleDate.toISOString().split('T')[0],
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        location: schedule.location,
+        partner: schedule.partner,
+        company: schedule.company,
+        studentType: schedule.studentType,
+        studentCount: schedule.studentCount,
+        fee: schedule.fee,
+        paymentDate: paymentDate ? paymentDate.toISOString().split('T')[0] : '',
+        status: schedule.status,
+        notes: schedule.notes || '',
+      });
+    }
+  }, [schedule, reset]);
 
   const studentTypes = ['Cán bộ', 'Công nhân', 'Quản lý', 'Chuyên viên', 'Khác'];
   const statuses = ['Chưa giảng', 'Đã giảng', 'Đang xếp', 'Hủy'];
 
   const onSubmitForm = async (data: ScheduleFormData) => {
+    if (!schedule) return;
+
     try {
-      const scheduleData = {
+      const updatedData = {
         date: Timestamp.fromDate(new Date(data.date)),
         startTime: data.startTime,
         endTime: data.endTime,
@@ -67,27 +95,39 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
         paymentDate: data.paymentDate ? Timestamp.fromDate(new Date(data.paymentDate)) : null,
         status: data.status,
         notes: data.notes || '',
-        createdBy: currentUser?.uid || '',
-        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
       };
 
-      await onSubmit(scheduleData);
-      toast.success('Thêm lịch giảng thành công!');
-      reset();
+      await onUpdate(schedule.id, updatedData);
+      toast.success('Cập nhật lịch giảng thành công!');
       onClose();
     } catch (error: any) {
       toast.error('Lỗi: ' + error.message);
     }
   };
 
-  if (!isOpen) return null;
+  const handleDelete = async () => {
+    if (!schedule) return;
+
+    if (confirm('Bạn có chắc chắn muốn xóa lịch giảng này?')) {
+      try {
+        await onDelete(schedule.id);
+        toast.success('Đã xóa lịch giảng!');
+        onClose();
+      } catch (error: any) {
+        toast.error('Lỗi: ' + error.message);
+      }
+    }
+  };
+
+  if (!isOpen || !schedule) return null;
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-surface rounded-xl border border-border-color w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-border-color sticky top-0 bg-surface z-10">
-          <h2 className="text-white text-xl font-bold">Thêm Lịch Giảng Mới</h2>
+          <h2 className="text-white text-xl font-bold">Chi Tiết & Chỉnh Sửa Lịch Giảng</h2>
           <button
             onClick={onClose}
             className="text-text-muted hover:text-white transition-colors"
@@ -345,32 +385,40 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
           <div className="flex gap-3 pt-4 border-t border-border-color">
             <button
               type="button"
-              onClick={() => {
-                reset();
-                onClose();
-              }}
-              className="flex-1 px-4 py-3 bg-surface-light hover:bg-surface text-white rounded-lg font-medium transition-colors"
+              onClick={handleDelete}
+              className="px-4 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-medium transition-colors flex items-center gap-2"
               disabled={isSubmitting}
             >
-              Hủy
+              <span className="material-symbols-outlined text-xl">delete</span>
+              Xóa
             </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 px-4 py-3 bg-primary hover:bg-opacity-90 text-background-dark rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <span className="material-symbols-outlined text-xl animate-spin">refresh</span>
-                  Đang lưu...
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-xl">event</span>
-                  Thêm Lịch Giảng
-                </>
-              )}
-            </button>
+            <div className="flex-1 flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-3 bg-surface-light hover:bg-surface text-white rounded-lg font-medium transition-colors"
+                disabled={isSubmitting}
+              >
+                Đóng
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-1 px-4 py-3 bg-primary hover:bg-opacity-90 text-background-dark rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="material-symbols-outlined text-xl animate-spin">refresh</span>
+                    Đang lưu...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-xl">save</span>
+                    Lưu Thay Đổi
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </form>
       </div>

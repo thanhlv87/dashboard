@@ -5,6 +5,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { TeachingSchedule, Partner } from '../lib/firebase/types';
 import { orderBy, where } from 'firebase/firestore';
 import { AddScheduleModal } from '../components/AddScheduleModal';
+import { EditScheduleModal } from '../components/EditScheduleModal';
 import toast from 'react-hot-toast';
 
 // ========================================
@@ -13,12 +14,15 @@ import toast from 'react-hot-toast';
 const CalendarView = () => {
   const navigate = useNavigate();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState<TeachingSchedule | null>(null);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   // Fetch schedules from Firestore
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const { data: schedules, loading, add } = useFirestore<TeachingSchedule>(
+  const { data: schedules, loading, add, update, remove } = useFirestore<TeachingSchedule>(
     'teaching',
     [orderBy('date', 'asc')]
   );
@@ -29,6 +33,29 @@ const CalendarView = () => {
       setShowAddModal(false);
     } catch (err) {
       console.error('Error adding schedule:', err);
+    }
+  };
+
+  const handleScheduleClick = (schedule: TeachingSchedule) => {
+    setSelectedSchedule(schedule);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateSchedule = async (id: string, data: Partial<TeachingSchedule>) => {
+    try {
+      await update(id, data);
+    } catch (err) {
+      console.error('Error updating schedule:', err);
+      throw err;
+    }
+  };
+
+  const handleDeleteSchedule = async (id: string) => {
+    try {
+      await remove(id);
+    } catch (err) {
+      console.error('Error deleting schedule:', err);
+      throw err;
     }
   };
 
@@ -114,17 +141,27 @@ const CalendarView = () => {
                   const isToday = d === currentDate.getDate() &&
                                  currentMonth === currentDate.getMonth() &&
                                  currentYear === currentDate.getFullYear();
+                  const isSelected = d === selectedDay;
 
                   return (
                     <div key={i} className="flex justify-center h-12">
                       {d && (
-                        <div className={`size-full max-w-[48px] max-h-[48px] rounded-full flex items-center justify-center text-sm font-medium relative hover:bg-surface-light/50 cursor-pointer transition-colors ${
-                          isToday ? 'bg-primary text-background-dark' : 'text-white'
-                        }`}>
+                        <div
+                          onClick={() => setSelectedDay(d)}
+                          className={`size-full max-w-[48px] max-h-[48px] rounded-full flex items-center justify-center text-sm font-medium relative hover:bg-surface-light/50 cursor-pointer transition-colors ${
+                            isToday ? 'bg-primary text-background-dark' :
+                            isSelected ? 'bg-surface-light text-white ring-2 ring-primary' :
+                            'text-white'
+                          }`}
+                        >
                           {d}
                           {/* Event indicators */}
                           {daySchedules.length > 0 && !isToday && (
-                            <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 size-1 rounded-full bg-green-500"></div>
+                            <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-0.5">
+                              {daySchedules.slice(0, 3).map((_, idx) => (
+                                <div key={idx} className="size-1 rounded-full bg-green-500"></div>
+                              ))}
+                            </div>
                           )}
                         </div>
                       )}
@@ -134,6 +171,68 @@ const CalendarView = () => {
               </div>
             )}
           </div>
+
+          {/* Selected Day Schedules */}
+          {selectedDay && (
+            <div className="mt-6">
+              <h3 className="text-white text-lg font-bold mb-4">
+                Lịch ngày {selectedDay}/{currentMonth + 1}/{currentYear}
+              </h3>
+              <div className="bg-surface border border-border-color rounded-xl p-4">
+                {getSchedulesForDay(selectedDay).length === 0 ? (
+                  <div className="text-center py-8 text-text-muted">
+                    <span className="material-symbols-outlined text-4xl mb-2">event_available</span>
+                    <p className="text-sm">Không có lịch giảng</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {getSchedulesForDay(selectedDay).map(schedule => (
+                      <div
+                        key={schedule.id}
+                        onClick={() => handleScheduleClick(schedule)}
+                        className="p-4 bg-surface-light rounded-lg hover:bg-surface-light/70 transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="material-symbols-outlined text-primary">schedule</span>
+                              <p className="text-white font-medium">{schedule.startTime} - {schedule.endTime}</p>
+                            </div>
+                            <p className="text-white text-lg font-bold mb-1">{schedule.company}</p>
+                            <div className="flex items-center gap-2 text-text-muted text-sm mb-2">
+                              <span className="material-symbols-outlined text-sm">location_on</span>
+                              {schedule.location}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
+                                <span className="material-symbols-outlined text-xs">business</span> {schedule.partner}
+                              </span>
+                              <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-400">
+                                <span className="material-symbols-outlined text-xs">group</span> {schedule.studentCount} học viên
+                              </span>
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                schedule.status === 'Đã giảng' ? 'bg-green-500/20 text-green-400' :
+                                schedule.status === 'Chưa giảng' ? 'bg-yellow-500/20 text-yellow-400' :
+                                schedule.status === 'Đang xếp' ? 'bg-purple-500/20 text-purple-400' :
+                                'bg-gray-500/20 text-gray-400'
+                              }`}>
+                                {schedule.status}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-primary text-lg font-bold">
+                              {schedule.fee.toLocaleString('vi-VN')} ₫
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Upcoming Schedules Sidebar */}
@@ -152,7 +251,11 @@ const CalendarView = () => {
             ) : (
               <div className="space-y-3">
                 {schedules.slice(0, 10).map(schedule => (
-                  <div key={schedule.id} className="p-3 bg-surface-light rounded-lg hover:bg-surface-light/70 transition-colors cursor-pointer">
+                  <div
+                    key={schedule.id}
+                    onClick={() => handleScheduleClick(schedule)}
+                    className="p-3 bg-surface-light rounded-lg hover:bg-surface-light/70 transition-colors cursor-pointer"
+                  >
                     <div className="flex items-start gap-3">
                       <div className="w-12 h-12 bg-primary/20 rounded-lg flex flex-col items-center justify-center shrink-0">
                         <p className="text-primary text-xs font-bold">{schedule.date.toDate().toLocaleDateString('vi-VN', { month: 'short' })}</p>
@@ -187,6 +290,18 @@ const CalendarView = () => {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddSchedule}
+      />
+
+      {/* Edit Schedule Modal */}
+      <EditScheduleModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedSchedule(null);
+        }}
+        schedule={selectedSchedule}
+        onUpdate={handleUpdateSchedule}
+        onDelete={handleDeleteSchedule}
       />
     </div>
   );

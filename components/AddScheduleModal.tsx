@@ -38,8 +38,6 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
   const [isAddingNewPartner, setIsAddingNewPartner] = useState(false);
   const [newPartnerName, setNewPartnerName] = useState('');
   const [newPartnerContact, setNewPartnerContact] = useState('');
-  const [newPartnerPhone, setNewPartnerPhone] = useState('');
-  const [newPartnerEmail, setNewPartnerEmail] = useState('');
 
   const {
     register,
@@ -64,25 +62,11 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
       toast.error('Vui lòng nhập tên đối tác');
       return;
     }
-    if (!newPartnerContact.trim()) {
-      toast.error('Vui lòng nhập người liên hệ');
-      return;
-    }
-    if (!newPartnerPhone.trim()) {
-      toast.error('Vui lòng nhập số điện thoại');
-      return;
-    }
-    if (!newPartnerEmail.trim()) {
-      toast.error('Vui lòng nhập email');
-      return;
-    }
 
     try {
       const partnerData = {
         name: newPartnerName.trim(),
         contactPerson: newPartnerContact.trim(),
-        phone: newPartnerPhone.trim(),
-        email: newPartnerEmail.trim(),
         totalClasses: 0,
         createdAt: Timestamp.now(),
       };
@@ -96,8 +80,6 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
       // Reset form
       setNewPartnerName('');
       setNewPartnerContact('');
-      setNewPartnerPhone('');
-      setNewPartnerEmail('');
       setIsAddingNewPartner(false);
     } catch (error: any) {
       toast.error('Lỗi khi thêm đối tác: ' + error.message);
@@ -285,23 +267,9 @@ export const AddScheduleModal: React.FC<AddScheduleModalProps> = ({ isOpen, onCl
                   />
                   <input
                     type="text"
-                    placeholder="Người liên hệ *"
+                    placeholder="Người liên hệ (không bắt buộc)"
                     value={newPartnerContact}
                     onChange={(e) => setNewPartnerContact(e.target.value)}
-                    className="w-full px-3 py-2 bg-surface border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary text-sm"
-                  />
-                  <input
-                    type="tel"
-                    placeholder="Số điện thoại *"
-                    value={newPartnerPhone}
-                    onChange={(e) => setNewPartnerPhone(e.target.value)}
-                    className="w-full px-3 py-2 bg-surface border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary text-sm"
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email *"
-                    value={newPartnerEmail}
-                    onChange={(e) => setNewPartnerEmail(e.target.value)}
                     className="w-full px-3 py-2 bg-surface border border-border-color rounded-lg text-white placeholder-text-muted focus:outline-none focus:border-primary text-sm"
                   />
                   <button

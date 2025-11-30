@@ -61,9 +61,9 @@ export interface TeachingSchedule {
 export interface Partner {
   id: string;
   name: string;
-  contactPerson: string;
-  phone: string;
-  email: string;
+  contactPerson?: string;
+  phone?: string;
+  email?: string;
   address?: string;
   totalClasses: number;     // Tổng số buổi đã thuê
   notes?: string;

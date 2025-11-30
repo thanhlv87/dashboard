@@ -3,17 +3,20 @@ import { NavLink, Routes, Route, useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { useFirestore } from '../hooks/useFirestore';
 import { TeachingSchedule, Partner } from '../lib/firebase/types';
-import { orderBy, where } from 'firebase/firestore';
+import { orderBy, where, Timestamp } from 'firebase/firestore';
 import { AddScheduleModal } from '../components/AddScheduleModal';
 import { EditScheduleModal } from '../components/EditScheduleModal';
 import { ImportExcelModal } from '../components/ImportExcelModal';
 import toast from 'react-hot-toast';
+
+import { ScheduleList } from '../components/ScheduleList';
 
 // ========================================
 // CALENDAR VIEW
 // ========================================
 const CalendarView = () => {
   const navigate = useNavigate();
+  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -65,11 +68,70 @@ const CalendarView = () => {
     }
   };
 
+  const handleDuplicateSchedule = async (schedule: TeachingSchedule) => {
+    try {
+      // Create a copy without ID and with current timestamp
+      const { id, ...scheduleData } = schedule;
+      const newSchedule = {
+        ...scheduleData,
+        createdAt: Timestamp.now(),
+        // Optional: append "(Copy)" to notes or something to distinguish?
+        // For now, exact copy is usually what's expected for "Duplicate"
+      };
+      await add(newSchedule);
+      toast.success('Đã nhân bản lịch giảng');
+    } catch (err) {
+      console.error('Error duplicating schedule:', err);
+      toast.error('Lỗi khi nhân bản');
+    }
+  };
+
+  const handleBulkDeleteSchedules = async (ids: string[]) => {
+    try {
+      // Execute all deletes in parallel
+      await Promise.all(ids.map(id => remove(id)));
+      toast.success(`Đã xóa ${ids.length} lịch giảng`);
+    } catch (err) {
+      console.error('Error bulk deleting schedules:', err);
+      toast.error('Lỗi khi xóa hàng loạt');
+    }
+  };
+
+  // Fetch partners to check for existence
+  const { data: partners, add: addPartner } = useFirestore<Partner>('partners', [orderBy('name', 'asc')]);
+
   const handleImportSchedules = async (schedules: Omit<TeachingSchedule, 'id'>[]) => {
     try {
+      // 1. Import schedules
       for (const schedule of schedules) {
         await add(schedule);
       }
+
+      // 2. Check and create missing partners
+      const uniquePartnerNames = Array.from(new Set(schedules.map(s => s.partner?.trim()).filter(Boolean)));
+
+      for (const partnerName of uniquePartnerNames) {
+        if (!partnerName) continue;
+
+        // Check if partner already exists (case-insensitive)
+        const exists = partners.some(p => p.name.trim().toLowerCase() === partnerName.toLowerCase());
+
+        if (!exists) {
+          try {
+            await addPartner({
+              name: partnerName,
+              totalClasses: 0, // Will be recalculated or incremented later
+              createdAt: Timestamp.now(),
+              // Optional fields are empty by default
+            });
+            console.log(`Auto-created partner: ${partnerName}`);
+          } catch (err) {
+            console.error(`Error auto-creating partner ${partnerName}:`, err);
+          }
+        }
+      }
+
+      toast.success('Import dữ liệu và cập nhật đối tác thành công!');
     } catch (err) {
       console.error('Error importing schedules:', err);
       throw err;
@@ -132,7 +194,33 @@ const CalendarView = () => {
           </p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* View Toggle */}
+          <div className="bg-surface-light p-1 rounded-lg flex border border-border-color">
+            <button
+              onClick={() => setViewMode('calendar')}
+              className={`p-2 rounded-md transition-all ${viewMode === 'calendar'
+                ? 'bg-primary text-background-dark shadow-sm'
+                : 'text-text-muted hover:text-white'
+                }`}
+              title="Xem lịch"
+            >
+              <span className="material-symbols-outlined text-xl block">calendar_month</span>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-md transition-all ${viewMode === 'list'
+                ? 'bg-primary text-background-dark shadow-sm'
+                : 'text-text-muted hover:text-white'
+                }`}
+              title="Xem danh sách"
+            >
+              <span className="material-symbols-outlined text-xl block">table_rows</span>
+            </button>
+          </div>
+
+          <div className="h-8 w-px bg-border-color mx-2 hidden sm:block"></div>
+
           <button
             onClick={() => setShowImportModal(true)}
             className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-surface-light hover:bg-surface text-white text-sm font-medium transition-colors"
@@ -150,192 +238,202 @@ const CalendarView = () => {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8 h-full">
-        {/* Calendar */}
-        <div className="flex-1 flex flex-col">
-          {/* Calendar Header */}
-          <div className="flex items-center justify-center gap-6 mb-6">
-            <button
-              onClick={handlePrevMonth}
-              className="flex size-10 items-center justify-center rounded-full hover:bg-surface-light text-white transition-colors"
-            >
-              <span className="material-symbols-outlined">chevron_left</span>
-            </button>
-            <p className="text-white text-base font-bold min-w-[150px] text-center">
-              Tháng {currentMonth + 1} năm {currentYear}
-            </p>
-            <button
-              onClick={handleNextMonth}
-              className="flex size-10 items-center justify-center rounded-full hover:bg-surface-light text-white transition-colors"
-            >
-              <span className="material-symbols-outlined">chevron_right</span>
-            </button>
-          </div>
-
-          {/* Calendar Grid */}
-          <div className="flex-1 border border-border-color rounded-xl bg-surface p-6">
-            <div className="grid grid-cols-7 mb-4">
-              {days.map(d => (
-                <div key={d} className="text-text-muted text-[13px] font-bold text-center h-12 flex items-center justify-center">
-                  {d}
-                </div>
-              ))}
+      {viewMode === 'list' ? (
+        <ScheduleList
+          schedules={schedules}
+          onEdit={handleScheduleClick}
+          onDelete={handleDeleteSchedule}
+          onDuplicate={handleDuplicateSchedule}
+          onBulkDelete={handleBulkDeleteSchedules}
+        />
+      ) : (
+        <div className="flex flex-col lg:flex-row gap-8 h-full">
+          {/* Calendar */}
+          <div className="flex-1 flex flex-col">
+            {/* Calendar Header */}
+            <div className="flex items-center justify-center gap-6 mb-6">
+              <button
+                onClick={handlePrevMonth}
+                className="flex size-10 items-center justify-center rounded-full hover:bg-surface-light text-white transition-colors"
+              >
+                <span className="material-symbols-outlined">chevron_left</span>
+              </button>
+              <p className="text-white text-base font-bold min-w-[150px] text-center">
+                Tháng {currentMonth + 1} năm {currentYear}
+              </p>
+              <button
+                onClick={handleNextMonth}
+                className="flex size-10 items-center justify-center rounded-full hover:bg-surface-light text-white transition-colors"
+              >
+                <span className="material-symbols-outlined">chevron_right</span>
+              </button>
             </div>
 
-            {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <span className="material-symbols-outlined text-4xl text-primary animate-spin">refresh</span>
+            {/* Calendar Grid */}
+            <div className="flex-1 border border-border-color rounded-xl bg-surface p-6">
+              <div className="grid grid-cols-7 mb-4">
+                {days.map(d => (
+                  <div key={d} className="text-text-muted text-[13px] font-bold text-center h-12 flex items-center justify-center">
+                    {d}
+                  </div>
+                ))}
               </div>
-            ) : (
-              <div className="grid grid-cols-7 gap-y-2">
-                {dates.map((d, i) => {
-                  const daySchedules = d ? getSchedulesForDay(d) : [];
-                  const isToday = d === currentDate.getDate() &&
-                    currentMonth === currentDate.getMonth() &&
-                    currentYear === currentDate.getFullYear();
-                  const isSelected = d === selectedDay;
 
-                  return (
-                    <div key={i} className="flex justify-center h-12">
-                      {d && (
-                        <div
-                          onClick={() => setSelectedDay(d)}
-                          className={`size-full max-w-[48px] max-h-[48px] rounded-full flex items-center justify-center text-sm font-medium relative hover:bg-surface-light/50 cursor-pointer transition-colors ${isToday ? 'bg-primary text-background-dark' :
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <span className="material-symbols-outlined text-4xl text-primary animate-spin">refresh</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-7 gap-y-2">
+                  {dates.map((d, i) => {
+                    const daySchedules = d ? getSchedulesForDay(d) : [];
+                    const isToday = d === currentDate.getDate() &&
+                      currentMonth === currentDate.getMonth() &&
+                      currentYear === currentDate.getFullYear();
+                    const isSelected = d === selectedDay;
+
+                    return (
+                      <div key={i} className="flex justify-center h-12">
+                        {d && (
+                          <div
+                            onClick={() => setSelectedDay(d)}
+                            className={`size-full max-w-[48px] max-h-[48px] rounded-full flex items-center justify-center text-sm font-medium relative hover:bg-surface-light/50 cursor-pointer transition-colors ${isToday ? 'bg-primary text-background-dark' :
                               isSelected ? 'bg-surface-light text-white ring-2 ring-primary' :
                                 'text-white'
-                            }`}
-                        >
-                          {d}
-                          {/* Event indicators */}
-                          {daySchedules.length > 0 && !isToday && (
-                            <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-0.5">
-                              {daySchedules.slice(0, 3).map((_, idx) => (
-                                <div key={idx} className="size-1 rounded-full bg-green-500"></div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                              }`}
+                          >
+                            {d}
+                            {/* Event indicators */}
+                            {daySchedules.length > 0 && !isToday && (
+                              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 flex gap-0.5">
+                                {daySchedules.slice(0, 3).map((_, idx) => (
+                                  <div key={idx} className="size-1 rounded-full bg-green-500"></div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Selected Day Schedules */}
+            {selectedDay && (
+              <div className="mt-6">
+                <h3 className="text-white text-lg font-bold mb-4">
+                  Lịch ngày {selectedDay}/{currentMonth + 1}/{currentYear}
+                </h3>
+                <div className="bg-surface border border-border-color rounded-xl p-4">
+                  {getSchedulesForDay(selectedDay).length === 0 ? (
+                    <div className="text-center py-8 text-text-muted">
+                      <span className="material-symbols-outlined text-4xl mb-2">event_available</span>
+                      <p className="text-sm">Không có lịch giảng</p>
                     </div>
-                  );
-                })}
+                  ) : (
+                    <div className="space-y-3">
+                      {getSchedulesForDay(selectedDay).map(schedule => (
+                        <div
+                          key={schedule.id}
+                          onClick={() => handleScheduleClick(schedule)}
+                          className="p-4 bg-surface-light rounded-lg hover:bg-surface-light/70 transition-colors cursor-pointer"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="material-symbols-outlined text-primary">schedule</span>
+                                <p className="text-white font-medium">{schedule.startTime} - {schedule.endTime}</p>
+                              </div>
+                              <p className="text-white text-lg font-bold mb-1">{schedule.company}</p>
+                              <div className="flex items-center gap-2 text-text-muted text-sm mb-2">
+                                <span className="material-symbols-outlined text-sm">location_on</span>
+                                {schedule.location}
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
+                                  <span className="material-symbols-outlined text-xs">business</span> {schedule.partner}
+                                </span>
+                                <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-400">
+                                  <span className="material-symbols-outlined text-xs">group</span> {schedule.studentCount} học viên
+                                </span>
+                                <span className={`text-xs px-2 py-1 rounded-full ${schedule.status === 'Đã giảng' ? 'bg-green-500/20 text-green-400' :
+                                  schedule.status === 'Chưa giảng' ? 'bg-yellow-500/20 text-yellow-400' :
+                                    schedule.status === 'Đang xếp' ? 'bg-purple-500/20 text-purple-400' :
+                                      'bg-gray-500/20 text-gray-400'
+                                  }`}>
+                                  {schedule.status}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-primary text-lg font-bold">
+                                {schedule.fee.toLocaleString('vi-VN')} ₫
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
 
-          {/* Selected Day Schedules */}
-          {selectedDay && (
-            <div className="mt-6">
-              <h3 className="text-white text-lg font-bold mb-4">
-                Lịch ngày {selectedDay}/{currentMonth + 1}/{currentYear}
-              </h3>
-              <div className="bg-surface border border-border-color rounded-xl p-4">
-                {getSchedulesForDay(selectedDay).length === 0 ? (
-                  <div className="text-center py-8 text-text-muted">
-                    <span className="material-symbols-outlined text-4xl mb-2">event_available</span>
-                    <p className="text-sm">Không có lịch giảng</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {getSchedulesForDay(selectedDay).map(schedule => (
+          {/* Upcoming Schedules Sidebar */}
+          <div className="w-full lg:w-80 flex flex-col">
+            <h3 className="text-white text-lg font-bold mb-4">Lịch sắp tới</h3>
+            <div className="flex-1 bg-surface border border-border-color rounded-xl p-4 overflow-y-auto">
+              {loading ? (
+                <div className="flex items-center justify-center h-32">
+                  <span className="material-symbols-outlined text-2xl text-primary animate-spin">refresh</span>
+                </div>
+              ) : schedules.length === 0 ? (
+                <div className="text-center py-8 text-text-muted">
+                  <span className="material-symbols-outlined text-4xl mb-2">event_busy</span>
+                  <p className="text-sm">Chưa có lịch giảng nào</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {schedules
+                    .filter(schedule => schedule.date.toDate() >= today) // Only show future schedules
+                    .slice(0, 10)
+                    .map(schedule => (
                       <div
                         key={schedule.id}
                         onClick={() => handleScheduleClick(schedule)}
-                        className="p-4 bg-surface-light rounded-lg hover:bg-surface-light/70 transition-colors cursor-pointer"
+                        className="p-3 bg-surface-light rounded-lg hover:bg-surface-light/70 transition-colors cursor-pointer"
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="material-symbols-outlined text-primary">schedule</span>
-                              <p className="text-white font-medium">{schedule.startTime} - {schedule.endTime}</p>
-                            </div>
-                            <p className="text-white text-lg font-bold mb-1">{schedule.company}</p>
-                            <div className="flex items-center gap-2 text-text-muted text-sm mb-2">
-                              <span className="material-symbols-outlined text-sm">location_on</span>
-                              {schedule.location}
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              <span className="text-xs px-2 py-1 rounded-full bg-blue-500/20 text-blue-400">
-                                <span className="material-symbols-outlined text-xs">business</span> {schedule.partner}
-                              </span>
-                              <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-400">
-                                <span className="material-symbols-outlined text-xs">group</span> {schedule.studentCount} học viên
-                              </span>
-                              <span className={`text-xs px-2 py-1 rounded-full ${schedule.status === 'Đã giảng' ? 'bg-green-500/20 text-green-400' :
-                                  schedule.status === 'Chưa giảng' ? 'bg-yellow-500/20 text-yellow-400' :
-                                    schedule.status === 'Đang xếp' ? 'bg-purple-500/20 text-purple-400' :
-                                      'bg-gray-500/20 text-gray-400'
+                        <div className="flex items-start gap-3">
+                          <div className="w-12 h-12 bg-primary/20 rounded-lg flex flex-col items-center justify-center shrink-0">
+                            <p className="text-primary text-xs font-bold">{schedule.date.toDate().toLocaleDateString('vi-VN', { month: 'short' })}</p>
+                            <p className="text-white text-lg font-bold">{schedule.date.toDate().getDate()}</p>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm font-medium truncate">{schedule.company}</p>
+                            <p className="text-text-muted text-xs">{schedule.startTime} - {schedule.endTime}</p>
+                            <p className="text-text-muted text-xs truncate">{schedule.location}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${schedule.status === 'Đã giảng' ? 'bg-green-500/20 text-green-400' :
+                                schedule.status === 'Chưa giảng' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  schedule.status === 'Đang xếp' ? 'bg-purple-500/20 text-purple-400' :
+                                    'bg-gray-500/20 text-gray-400'
                                 }`}>
                                 {schedule.status}
                               </span>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-primary text-lg font-bold">
-                              {schedule.fee.toLocaleString('vi-VN')} ₫
-                            </p>
-                          </div>
                         </div>
                       </div>
                     ))}
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-
-        {/* Upcoming Schedules Sidebar */}
-        <div className="w-full lg:w-80 flex flex-col">
-          <h3 className="text-white text-lg font-bold mb-4">Lịch sắp tới</h3>
-          <div className="flex-1 bg-surface border border-border-color rounded-xl p-4 overflow-y-auto">
-            {loading ? (
-              <div className="flex items-center justify-center h-32">
-                <span className="material-symbols-outlined text-2xl text-primary animate-spin">refresh</span>
-              </div>
-            ) : schedules.length === 0 ? (
-              <div className="text-center py-8 text-text-muted">
-                <span className="material-symbols-outlined text-4xl mb-2">event_busy</span>
-                <p className="text-sm">Chưa có lịch giảng nào</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {schedules
-                  .filter(schedule => schedule.date.toDate() >= today) // Only show future schedules
-                  .slice(0, 10)
-                  .map(schedule => (
-                    <div
-                      key={schedule.id}
-                      onClick={() => handleScheduleClick(schedule)}
-                      className="p-3 bg-surface-light rounded-lg hover:bg-surface-light/70 transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-12 h-12 bg-primary/20 rounded-lg flex flex-col items-center justify-center shrink-0">
-                          <p className="text-primary text-xs font-bold">{schedule.date.toDate().toLocaleDateString('vi-VN', { month: 'short' })}</p>
-                          <p className="text-white text-lg font-bold">{schedule.date.toDate().getDate()}</p>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white text-sm font-medium truncate">{schedule.company}</p>
-                          <p className="text-text-muted text-xs">{schedule.startTime} - {schedule.endTime}</p>
-                          <p className="text-text-muted text-xs truncate">{schedule.location}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${schedule.status === 'Đã giảng' ? 'bg-green-500/20 text-green-400' :
-                                schedule.status === 'Chưa giảng' ? 'bg-yellow-500/20 text-yellow-400' :
-                                  schedule.status === 'Đang xếp' ? 'bg-purple-500/20 text-purple-400' :
-                                    'bg-gray-500/20 text-gray-400'
-                              }`}>
-                              {schedule.status}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            )}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Add Schedule Modal */}
       <AddScheduleModal
@@ -370,17 +468,23 @@ const CalendarView = () => {
 // PARTNERS DASHBOARD
 // ========================================
 const PartnersDashboard = () => {
-  const [showAddModal, setShowAddModal] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   // Fetch data from Firestore
-  const { data: allSchedules } = useFirestore<TeachingSchedule>('teaching', [orderBy('date', 'desc')]);
+  const { data: allSchedules, add, update, remove } = useFirestore<TeachingSchedule>('teaching', [orderBy('date', 'desc')]);
   const { data: partners } = useFirestore<Partner>('partners', [orderBy('totalClasses', 'desc')]);
 
   // Get available years from schedules
   const availableYears = Array.from(
     new Set(allSchedules.map(s => s.date.toDate().getFullYear()))
   ).sort((a, b) => b - a); // Sort descending
+
+  // Auto-select latest year if current selection is invalid or empty
+  React.useEffect(() => {
+    if (availableYears.length > 0 && !availableYears.includes(selectedYear)) {
+      setSelectedYear(availableYears[0]);
+    }
+  }, [availableYears, selectedYear]);
 
   // Filter schedules by selected year
   const schedules = allSchedules.filter(s => s.date.toDate().getFullYear() === selectedYear);
@@ -398,7 +502,7 @@ const PartnersDashboard = () => {
   // Partner revenue data
   const partnerRevenueData = partners.slice(0, 5).map((p, i) => {
     const colors = ['#00E396', '#FF4560', '#FEB019', '#775DD0', '#008FFB'];
-    const partnerSchedules = schedules.filter(s => s.partner === p.name);
+    const partnerSchedules = schedules.filter(s => s.partner?.trim().toLowerCase() === p.name.trim().toLowerCase());
     const revenue = partnerSchedules.reduce((sum, s) => sum + s.fee, 0);
     return { name: p.name, value: revenue, color: colors[i] };
   });
@@ -406,7 +510,7 @@ const PartnersDashboard = () => {
   // Partner class count data - Calculate from actual schedules
   const partnerClassCountData = partners.slice(0, 5).map((p, i) => {
     const colors = ['#E0E0E0', '#00E396', '#FEB019', '#FF4560', '#008FFB'];
-    const partnerSchedules = schedules.filter(s => s.partner === p.name);
+    const partnerSchedules = schedules.filter(s => s.partner?.trim().toLowerCase() === p.name.trim().toLowerCase());
     const classCount = partnerSchedules.length; // Count actual schedules
     return { name: p.name, value: classCount, color: colors[i] };
   });
@@ -423,7 +527,90 @@ const PartnersDashboard = () => {
     return { name: status, value: count as number, color: colors[i] || '#BDBDBD' };
   });
 
-  const DonutChart = ({ data, title }: { data: any[], title: string }) => (
+  // Interactive Filter State
+  const [activeFilter, setActiveFilter] = useState<{ type: 'partner' | 'payment' | 'status', value: string } | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState<TeachingSchedule | null>(null);
+
+  // Handlers for ScheduleList
+  const handleEdit = (schedule: TeachingSchedule) => {
+    setSelectedSchedule(schedule);
+    setShowEditModal(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await remove(id);
+      toast.success('Đã xóa lịch giảng');
+    } catch (err) {
+      console.error('Error deleting schedule:', err);
+      toast.error('Lỗi khi xóa');
+    }
+  };
+
+  const handleDuplicate = async (schedule: TeachingSchedule) => {
+    try {
+      const { id, ...scheduleData } = schedule;
+      const newSchedule = {
+        ...scheduleData,
+        createdAt: Timestamp.now(),
+      };
+      await add(newSchedule);
+      toast.success('Đã nhân bản lịch giảng');
+    } catch (err) {
+      console.error('Error duplicating schedule:', err);
+      toast.error('Lỗi khi nhân bản');
+    }
+  };
+
+  const handleBulkDelete = async (ids: string[]) => {
+    try {
+      await Promise.all(ids.map(id => remove(id)));
+      toast.success(`Đã xóa ${ids.length} lịch giảng`);
+    } catch (err) {
+      console.error('Error bulk deleting schedules:', err);
+      toast.error('Lỗi khi xóa hàng loạt');
+    }
+  };
+
+  const handleUpdateSchedule = async (id: string, data: Partial<TeachingSchedule>) => {
+    try {
+      await update(id, data);
+    } catch (err) {
+      console.error('Error updating schedule:', err);
+      throw err;
+    }
+  };
+
+  // Filtered schedules based on active filter
+  const filteredSchedules = React.useMemo(() => {
+    if (!activeFilter) return [];
+    return schedules.filter(s => {
+      if (activeFilter.type === 'partner') {
+        return s.partner?.trim().toLowerCase() === activeFilter.value.trim().toLowerCase();
+      }
+      if (activeFilter.type === 'payment') {
+        if (activeFilter.value === 'Đã thanh toán') return !!s.paymentDate;
+        if (activeFilter.value === 'Chưa thanh toán') return !s.paymentDate;
+      }
+      if (activeFilter.type === 'status') {
+        return s.status === activeFilter.value;
+      }
+      return false;
+    });
+  }, [schedules, activeFilter]);
+
+  const handleChartClick = (data: any, type: 'partner' | 'payment' | 'status') => {
+    if (data && data.name) {
+      setActiveFilter({ type, value: data.name });
+      // Scroll to list
+      setTimeout(() => {
+        document.getElementById('filtered-list')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  };
+
+  const DonutChart = ({ data, title, type }: { data: any[], title: string, type: 'partner' | 'payment' | 'status' }) => (
     <div className="bg-surface border border-border-color rounded-xl p-4 flex flex-col h-full">
       <h3 className="text-white font-medium text-sm mb-4">{title}</h3>
       <div className="flex-1 min-h-[200px]">
@@ -436,9 +623,11 @@ const PartnersDashboard = () => {
               paddingAngle={2}
               dataKey="value"
               stroke="none"
+              onClick={(data) => handleChartClick(data, type)}
+              className="cursor-pointer focus:outline-none"
             >
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+                <Cell key={`cell-${index}`} fill={entry.color} className="hover:opacity-80 transition-opacity cursor-pointer" />
               ))}
             </Pie>
             <Tooltip
@@ -506,21 +695,63 @@ const PartnersDashboard = () => {
 
         {/* Charts */}
         <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <DonutChart data={partnerRevenueData} title="Doanh thu theo đối tác" />
-          <DonutChart data={partnerClassCountData} title="Số lớp theo đối tác" />
-          <DonutChart data={paymentStatusData} title="Tình trạng thanh toán" />
-          <DonutChart data={teachingStatusData} title="Tình trạng giảng dạy" />
+          <DonutChart data={partnerRevenueData} title="Doanh thu theo đối tác" type="partner" />
+          <DonutChart data={partnerClassCountData} title="Số lớp theo đối tác" type="partner" />
+          <DonutChart data={paymentStatusData} title="Tình trạng thanh toán" type="payment" />
+          <DonutChart data={teachingStatusData} title="Tình trạng giảng dạy" type="status" />
         </div>
       </div>
 
+      {/* Filtered List Section */}
+      {activeFilter && (
+        <div id="filtered-list" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white text-xl font-bold flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">filter_list</span>
+              Danh sách: {activeFilter.value}
+              <span className="text-text-muted text-sm font-normal ml-2">({filteredSchedules.length} lịch giảng)</span>
+            </h3>
+            <button
+              onClick={() => setActiveFilter(null)}
+              className="px-3 py-1.5 bg-surface-light hover:bg-surface text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-lg">close</span>
+              Xóa bộ lọc
+            </button>
+          </div>
+
+          <div className="bg-surface border border-border-color rounded-xl overflow-hidden h-[500px]">
+            <ScheduleList
+              schedules={filteredSchedules}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onDuplicate={handleDuplicate}
+              onBulkDelete={handleBulkDelete}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Empty state or Partner list */}
-      {partners.length === 0 ? (
+      {!activeFilter && partners.length === 0 ? (
         <div className="bg-surface border border-border-color rounded-xl p-12 text-center">
           <span className="material-symbols-outlined text-5xl text-text-muted mb-4">group</span>
           <p className="text-lg text-white mb-2">Chưa có đối tác nào</p>
           <p className="text-sm text-text-muted">Thêm lịch giảng để tự động tạo đối tác</p>
         </div>
       ) : null}
+
+      {/* Edit Modal for Filtered List */}
+      <EditScheduleModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedSchedule(null);
+        }}
+        schedule={selectedSchedule}
+        onUpdate={handleUpdateSchedule}
+        onDelete={handleDelete}
+      />
     </div>
   );
 };

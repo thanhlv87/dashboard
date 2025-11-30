@@ -17,6 +17,22 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
   const [isUploading, setIsUploading] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]);
 
+  // Helper to find value with fuzzy key matching
+  const getValue = (row: any, keys: string[]): any => {
+    const rowKeys = Object.keys(row);
+    for (const key of keys) {
+      // Exact match
+      if (row[key] !== undefined) return row[key];
+
+      // Case-insensitive and trimmed match
+      const foundKey = rowKeys.find(k =>
+        k.trim().toLowerCase() === key.toLowerCase()
+      );
+      if (foundKey && row[foundKey] !== undefined) return row[foundKey];
+    }
+    return undefined;
+  };
+
   // Download template Excel file
   const handleDownloadTemplate = () => {
     const templateData = [
@@ -142,28 +158,35 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
 
           jsonData.forEach((row, index) => {
             try {
-              const date = parseDate(row['Ngày giảng (dd/mm/yyyy)']);
+              const dateStr = getValue(row, ['Ngày giảng (dd/mm/yyyy)', 'Ngày giảng', 'Date']);
+              let date = parseDate(dateStr);
+
+              // If date is invalid, default to today and add a note
+              let dateNote = '';
               if (!date) {
-                errors.push(`Dòng ${index + 2}: Ngày giảng không hợp lệ`);
-                return;
+                date = new Date();
+                dateNote = ` (Ngày gốc lỗi: ${dateStr || 'Trống'})`;
               }
 
-              const paymentDateStr = row['Ngày thanh toán (dd/mm/yyyy)'];
+              const paymentDateStr = getValue(row, ['Ngày thanh toán (dd/mm/yyyy)', 'Ngày thanh toán', 'Payment Date']);
               const paymentDate = paymentDateStr ? parseDate(paymentDateStr) : null;
+
+              const partnerName = getValue(row, ['Đối tác thuê', 'Đối tác', 'Partner']) || '';
+              const notes = getValue(row, ['Ghi chú', 'Notes']) || '';
 
               const schedule: Omit<TeachingSchedule, 'id'> = {
                 date: Timestamp.fromDate(date),
-                startTime: row['Giờ bắt đầu (HH:mm)'] || '08:00',
-                endTime: row['Giờ kết thúc (HH:mm)'] || '11:30',
-                location: row['Địa điểm'] || '',
-                partner: row['Đối tác thuê'] || '',
-                company: row['Công ty'] || '',
-                studentType: row['Loại học viên'] || 'Khác',
-                studentCount: parseInt(row['Số học viên']) || 0,
-                fee: parseFloat(row['Học phí (VNĐ)']) || 0,
+                startTime: getValue(row, ['Giờ bắt đầu (HH:mm)', 'Giờ bắt đầu', 'Start Time']) || '',
+                endTime: getValue(row, ['Giờ kết thúc (HH:mm)', 'Giờ kết thúc', 'End Time']) || '',
+                location: getValue(row, ['Địa điểm', 'Location']) || '',
+                partner: partnerName.trim(), // Ensure trimmed for matching
+                company: getValue(row, ['Công ty', 'Company']) || '',
+                studentType: getValue(row, ['Loại học viên', 'Student Type']) || 'Khác',
+                studentCount: parseInt(getValue(row, ['Số học viên', 'Student Count'])) || 0,
+                fee: parseFloat(getValue(row, ['Học phí (VNĐ)', 'Học phí', 'Fee'])) || 0,
                 paymentDate: paymentDate ? Timestamp.fromDate(paymentDate) : undefined,
-                status: (row['Trạng thái'] as any) || 'Chưa giảng',
-                notes: row['Ghi chú'] || '',
+                status: (getValue(row, ['Trạng thái', 'Status']) as any) || 'Chưa giảng',
+                notes: (notes + dateNote).trim(),
                 createdBy: currentUser?.uid || '',
                 createdAt: Timestamp.now(),
               };
@@ -176,7 +199,8 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
 
               schedules.push(schedule);
             } catch (err) {
-              errors.push(`Dòng ${index + 2}: Lỗi không xác định`);
+              console.error(`Error parsing row ${index}:`, err);
+              // Don't fail the whole import, just log
             }
           });
 
@@ -294,16 +318,16 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
                   <tbody>
                     {previewData.map((row, i) => (
                       <tr key={i} className="border-b border-border-color/50">
-                        <td className="text-white p-2">{row['Ngày giảng (dd/mm/yyyy)']}</td>
+                        <td className="text-white p-2">{getValue(row, ['Ngày giảng (dd/mm/yyyy)', 'Ngày giảng', 'Date'])}</td>
                         <td className="text-white p-2">
-                          {row['Giờ bắt đầu (HH:mm)']} - {row['Giờ kết thúc (HH:mm)']}
+                          {getValue(row, ['Giờ bắt đầu (HH:mm)', 'Giờ bắt đầu'])} - {getValue(row, ['Giờ kết thúc (HH:mm)', 'Giờ kết thúc'])}
                         </td>
-                        <td className="text-white p-2">{row['Đối tác thuê']}</td>
-                        <td className="text-white p-2">{row['Công ty']}</td>
+                        <td className="text-white p-2">{getValue(row, ['Đối tác thuê', 'Đối tác', 'Partner'])}</td>
+                        <td className="text-white p-2">{getValue(row, ['Công ty', 'Company'])}</td>
                         <td className="text-white p-2 text-right">
-                          {parseInt(row['Học phí (VNĐ)']).toLocaleString('vi-VN')} ₫
+                          {parseInt(getValue(row, ['Học phí (VNĐ)', 'Học phí', 'Fee']) || '0').toLocaleString('vi-VN')} ₫
                         </td>
-                        <td className="text-white p-2">{row['Trạng thái']}</td>
+                        <td className="text-white p-2">{getValue(row, ['Trạng thái', 'Status'])}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -37,7 +37,7 @@ service firebase.storage {
     // ========================================
     // USER AVATARS
     // ========================================
-    match /users/{userId}/avatar.{ext} {
+    match /users/{userId}/{fileName} {
       // Anyone can read avatars (public)
       allow read: if true;
 

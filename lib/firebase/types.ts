@@ -51,7 +51,7 @@ export interface TeachingSchedule {
   studentCount: number;     // Số lượng học viên
   fee: number;              // Kinh phí giảng
   paymentDate?: Timestamp;  // Ngày thanh toán
-  status: 'preparing' | 'confirmed' | 'completed' | 'postponed';
+  status: 'Đã giảng' | 'Chưa giảng' | 'Đang xếp' | 'Hủy';
   notes?: string;
   createdBy: string;
   createdAt: Timestamp;

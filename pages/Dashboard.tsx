@@ -68,7 +68,7 @@ const Dashboard = () => {
 
   // Fetch products for inventory
   const { data: products, loading: productsLoading } = useFirestore<Product>(
-    'business/products',
+    'products',
     []
   );
 

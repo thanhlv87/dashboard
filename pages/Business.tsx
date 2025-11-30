@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 // PRODUCTS VIEW
 // ========================================
 const ProductsView = () => {
-    const { data: products, loading, remove, add } = useFirestore<Product>('business/products', [orderBy('createdAt', 'desc')]);
+    const { data: products, loading, remove, add } = useFirestore<Product>('products', [orderBy('createdAt', 'desc')]);
     const [searchQuery, setSearchQuery] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
 
@@ -160,7 +160,7 @@ const ProductsView = () => {
 // REVENUE VIEW
 // ========================================
 const RevenueView = () => {
-    const { data: revenueRecords, loading } = useFirestore<RevenueRecord>('business/revenue', [orderBy('date', 'desc')]);
+    const { data: revenueRecords, loading } = useFirestore<RevenueRecord>('revenue', [orderBy('date', 'desc')]);
 
     // Calculate stats
     const totalRevenue = revenueRecords.reduce((sum, r) => sum + r.revenue, 0);
@@ -309,7 +309,7 @@ const RevenueView = () => {
 // CUSTOMERS VIEW
 // ========================================
 const CustomersView = () => {
-    const { data: customers, loading, remove, add } = useFirestore<Customer>('business/customers', [orderBy('totalSpent', 'desc')]);
+    const { data: customers, loading, remove, add } = useFirestore<Customer>('customers', [orderBy('totalSpent', 'desc')]);
     const [searchQuery, setSearchQuery] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
 

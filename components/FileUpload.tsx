@@ -169,7 +169,12 @@ export const DragDropUpload: React.FC<DragDropUploadProps> = ({
     await uploadFile(files[0]);
   };
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: unknown) => {
+    if (!(file instanceof File)) {
+      toast.error('File không hợp lệ');
+      return;
+    }
+
     if (file.size > maxSize * 1024 * 1024) {
       toast.error(`File quá lớn! Tối đa ${maxSize}MB`);
       return;

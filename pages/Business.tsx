@@ -4,18 +4,31 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useFirestore } from '../hooks/useFirestore';
 import { Product, Customer, RevenueRecord } from '../lib/firebase/types';
 import { orderBy } from 'firebase/firestore';
+import { AddProductModal } from '../components/AddProductModal';
+import { AddCustomerModal } from '../components/AddCustomerModal';
+import toast from 'react-hot-toast';
 
 // ========================================
 // PRODUCTS VIEW
 // ========================================
 const ProductsView = () => {
-    const { data: products, loading, remove } = useFirestore<Product>('business/products', [orderBy('createdAt', 'desc')]);
+    const { data: products, loading, remove, add } = useFirestore<Product>('business/products', [orderBy('createdAt', 'desc')]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [showAddModal, setShowAddModal] = useState(false);
 
     const filteredProducts = products.filter(p =>
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.sku.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    const handleAddProduct = async (productData: Omit<Product, 'id'>) => {
+        try {
+            await add(productData);
+            setShowAddModal(false);
+        } catch (err) {
+            console.error('Error adding product:', err);
+        }
+    };
 
     return (
         <div className="flex-1 p-8 overflow-y-auto">
@@ -24,7 +37,10 @@ const ProductsView = () => {
                     <h1 className="text-3xl font-bold leading-tight tracking-tight text-white">Quản lý Sản phẩm</h1>
                     <p className="text-text-muted text-base font-normal leading-normal">Quản lý kho tương ớt Bông Ớt</p>
                 </div>
-                <button className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary text-background-dark text-sm font-bold leading-normal tracking-wide hover:opacity-90 transition-opacity">
+                <button
+                    onClick={() => setShowAddModal(true)}
+                    className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary text-background-dark text-sm font-bold leading-normal tracking-wide hover:opacity-90 transition-opacity"
+                >
                     <span className="material-symbols-outlined">add</span>
                     <span className="truncate">Thêm Sản phẩm</span>
                 </button>
@@ -129,6 +145,13 @@ const ProductsView = () => {
                 </div>
                 )}
              </div>
+
+             {/* Add Product Modal */}
+             <AddProductModal
+                isOpen={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSubmit={handleAddProduct}
+             />
         </div>
     );
 };
@@ -286,13 +309,23 @@ const RevenueView = () => {
 // CUSTOMERS VIEW
 // ========================================
 const CustomersView = () => {
-    const { data: customers, loading, remove } = useFirestore<Customer>('business/customers', [orderBy('totalSpent', 'desc')]);
+    const { data: customers, loading, remove, add } = useFirestore<Customer>('business/customers', [orderBy('totalSpent', 'desc')]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [showAddModal, setShowAddModal] = useState(false);
 
     const filteredCustomers = customers.filter(c =>
       c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.phone.includes(searchQuery)
     );
+
+    const handleAddCustomer = async (customerData: Omit<Customer, 'id'>) => {
+        try {
+            await add(customerData);
+            setShowAddModal(false);
+        } catch (err) {
+            console.error('Error adding customer:', err);
+        }
+    };
 
     return (
         <div className="flex-1 p-8 overflow-y-auto">
@@ -301,7 +334,10 @@ const CustomersView = () => {
                     <p className="text-3xl font-bold leading-tight tracking-tight text-white">Khách hàng</p>
                     <p className="text-base font-normal leading-normal text-text-muted">Quản lý danh sách khách hàng</p>
                 </div>
-                <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 gap-2 bg-primary px-4 text-sm font-bold leading-normal tracking-[0.015em] text-[#111814] hover:opacity-90">
+                <button
+                    onClick={() => setShowAddModal(true)}
+                    className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 gap-2 bg-primary px-4 text-sm font-bold leading-normal tracking-[0.015em] text-[#111814] hover:opacity-90"
+                >
                     <span className="material-symbols-outlined text-base">add</span>
                     <span className="truncate">Thêm Khách Hàng</span>
                 </button>
@@ -402,6 +438,13 @@ const CustomersView = () => {
                 </table>
             </div>
             )}
+
+            {/* Add Customer Modal */}
+            <AddCustomerModal
+                isOpen={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSubmit={handleAddCustomer}
+            />
 
         </div>
     );

@@ -6,7 +6,7 @@ import { orderBy } from 'firebase/firestore';
 import { AddTaskModal } from '../components/AddTaskModal';
 import toast from 'react-hot-toast';
 
-const TaskItem = ({ task, onEdit, onDelete }: { task: Task, onEdit: (task: Task) => void, onDelete: (id: string) => void }) => {
+const TaskItem = ({ task, onEdit, onDelete }: { task: Task, onEdit: (task: Task) => void, onDelete: (id: string) => Promise<void> }) => {
   return (
     <div className="bg-surface border-t border-t-border-color first:border-t-0 p-4 hover:bg-surface-light/30 transition-colors">
         <div className="flex flex-col md:flex-row items-center gap-4">

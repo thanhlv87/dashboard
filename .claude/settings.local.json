@@ -10,7 +10,9 @@
       "Bash(git push:*)",
       "Bash(git commit:*)",
       "Bash(npm run preview:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []

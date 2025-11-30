@@ -12,7 +12,7 @@ const taskSchema = z.object({
   source: z.string().min(1, 'Vui lòng chọn nguồn giao việc'),
   field: z.string().min(1, 'Vui lòng chọn mảng công việc'),
   deadline: z.string().min(1, 'Vui lòng chọn deadline'),
-  progress: z.number().min(0).max(100).default(0),
+  progress: z.number().min(0).max(100).optional().default(0),
   notes: z.string().optional(),
 });
 
@@ -45,6 +45,7 @@ export const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onS
     try {
       const taskData = {
         ...data,
+        progress: data.progress ?? 0, // Ensure progress is always a number
         files: 0,
         assignedTo: [],
         createdBy: currentUser?.uid || '',

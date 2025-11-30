@@ -3,6 +3,8 @@ import { useFirestore } from '../hooks/useFirestore';
 import { useAuth } from '../contexts/AuthContext';
 import { Task } from '../lib/firebase/types';
 import { orderBy } from 'firebase/firestore';
+import { AddTaskModal } from '../components/AddTaskModal';
+import toast from 'react-hot-toast';
 
 const TaskItem = ({ task, onEdit, onDelete }: { task: Task, onEdit: (task: Task) => void, onDelete: (id: string) => void }) => {
   return (
@@ -172,23 +174,12 @@ const Tasks = () => {
             )}
         </div>
 
-        {/* Add Task Modal - TODO: Create proper modal component */}
-        {showAddModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-surface border border-border-color rounded-xl p-6 max-w-md w-full">
-              <h2 className="text-xl font-bold text-white mb-4">Thêm Công Việc Mới</h2>
-              <p className="text-text-muted mb-4">
-                Tính năng này đang được phát triển. Vui lòng thêm dữ liệu trực tiếp vào Firestore Console.
-              </p>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="w-full py-2 bg-primary text-background-dark rounded-lg font-medium hover:bg-opacity-90"
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Add Task Modal */}
+        <AddTaskModal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onSubmit={handleAddTask}
+        />
     </div>
   );
 };

@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, NavLink, useLocation, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import LoginPage from './components/LoginPage';
-import Dashboard from './pages/Dashboard_new';
+import { HashRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom';
+import Dashboard from './pages/Dashboard';
 import Teaching from './pages/Teaching';
 import Tasks from './pages/Tasks';
 import Business from './pages/Business';
@@ -15,8 +13,8 @@ const SidebarItem = ({ to, icon, label, exact = false, onClick }: { to: string, 
       onClick={onClick}
       className={({ isActive }) =>
         `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
-          isActive
-            ? 'bg-surface-light text-white font-medium shadow-sm'
+          isActive 
+            ? 'bg-surface-light text-white font-medium shadow-sm' 
             : 'text-text-muted hover:bg-surface-light hover:text-white'
         }`
       }
@@ -30,27 +28,18 @@ const SidebarItem = ({ to, icon, label, exact = false, onClick }: { to: string, 
 const Layout = ({ children }: { children?: React.ReactNode }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
-  const { currentUser, logout } = useAuth();
 
   // Đóng sidebar khi chuyển trang trên mobile
   useEffect(() => {
     setIsSidebarOpen(false);
   }, [location]);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
   return (
     <div className="flex min-h-screen w-full font-sans bg-background-dark text-white selection:bg-primary selection:text-surface">
-
+      
       {/* Mobile Overlay */}
       {isSidebarOpen && (
-        <div
+        <div 
           className="fixed inset-0 bg-black/50 z-20 lg:hidden backdrop-blur-sm"
           onClick={() => setIsSidebarOpen(false)}
         ></div>
@@ -63,18 +52,12 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="p-5 flex items-center gap-3 border-b border-surface-light/50">
-          {currentUser?.photoURL ? (
-            <div className="size-10 rounded-full bg-cover bg-center border border-surface-light" style={{backgroundImage: `url("${currentUser.photoURL}")`}}></div>
-          ) : (
-            <div className="size-10 rounded-full bg-surface-light border border-surface-light flex items-center justify-center">
-              <span className="material-symbols-outlined text-primary">person</span>
-            </div>
-          )}
-          <div className="flex flex-col flex-1 min-w-0">
-            <h2 className="text-sm font-bold text-white leading-tight truncate">{currentUser?.displayName || 'User'}</h2>
-            <p className="text-xs text-text-muted truncate">{currentUser?.email}</p>
+          <div className="size-10 rounded-full bg-cover bg-center border border-surface-light" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAmZpUgGfd7Legdf17rJjnGGHoQPk4KMdf7WM6krYmuDy3WIPDA5b-xewr-_vdUNUFqhfhO2A6zkWFv7RyBzvxizlgooDZAaBWwHsUykyDNooqp71QonUkJaYocVf6z532gpDJ9etGBcgdjlddMP2iQLwF3btNYVXrkFB_eNJS4tz-eK7oGnhAz56u0bfRd-ht3NCpWE_YhkIWd5uknJ4ULymIn0WHyVkETYN3Af_Y7eHCmFzJBpawmpcMvQz4iIYTG-pm79Y5h38WJ")'}}></div>
+          <div className="flex flex-col">
+            <h2 className="text-sm font-bold text-white leading-tight">Giảng viên A</h2>
+            <p className="text-xs text-text-muted">quanly@email.com</p>
           </div>
-          <button
+          <button 
             className="ml-auto lg:hidden text-text-muted"
             onClick={() => setIsSidebarOpen(false)}
           >
@@ -84,7 +67,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
 
         <div className="flex-1 px-3 py-6 flex flex-col gap-1 overflow-y-auto">
           <SidebarItem to="/" icon="dashboard" label="Dashboard" exact />
-
+          
           <div className="my-2 border-t border-surface-light/30"></div>
           <p className="px-3 text-[10px] font-bold text-text-muted/70 uppercase tracking-wider mb-1 mt-2">Đào Tạo</p>
           <SidebarItem to="/teaching" icon="calendar_month" label="Lịch Giảng" />
@@ -93,13 +76,13 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
           <div className="my-2 border-t border-surface-light/30"></div>
            <p className="px-3 text-[10px] font-bold text-text-muted/70 uppercase tracking-wider mb-1 mt-2">Cơ Quan</p>
           <SidebarItem to="/tasks" icon="business_center" label="Công Việc Cơ Quan" />
-
+          
           <div className="my-2 border-t border-surface-light/30"></div>
            <p className="px-3 text-[10px] font-bold text-text-muted/70 uppercase tracking-wider mb-1 mt-2">Kinh Doanh (Bông Ớt)</p>
           <SidebarItem to="/business/revenue" icon="bar_chart" label="Báo Cáo" />
           <SidebarItem to="/business/products" icon="inventory_2" label="Sản Phẩm" />
           <SidebarItem to="/business/customers" icon="groups" label="Khách Hàng" />
-
+          
            <div className="my-4 border-t border-surface-light/50"></div>
            <SidebarItem to="/settings" icon="settings" label="Cài Đặt" />
         </div>
@@ -109,10 +92,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
             <span className="material-symbols-outlined text-[20px]">help</span>
             <span className="text-sm font-medium">Trợ giúp</span>
           </button>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 text-text-muted hover:text-white transition-colors w-full px-3 py-2 hover:bg-surface-light rounded-lg"
-          >
+          <button className="flex items-center gap-3 text-text-muted hover:text-white transition-colors w-full px-3 py-2 hover:bg-surface-light rounded-lg">
             <span className="material-symbols-outlined text-[20px]">logout</span>
             <span className="text-sm font-medium">Đăng xuất</span>
           </button>
@@ -123,7 +103,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
       <main className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden relative">
          {/* Mobile Header Toggle */}
          <div className="lg:hidden flex items-center p-4 border-b border-surface-light bg-background-dark">
-            <button
+            <button 
               onClick={() => setIsSidebarOpen(true)}
               className="p-2 -ml-2 text-white rounded-lg hover:bg-surface-light"
             >
@@ -131,7 +111,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
             </button>
             <span className="ml-3 font-bold text-lg">Quản Lý Tổng Hợp</span>
          </div>
-
+         
          <div className="flex-1 overflow-y-auto">
             {children}
          </div>
@@ -140,48 +120,17 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
   );
 };
 
-// Protected Route Component
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { currentUser } = useAuth();
-
-  if (!currentUser) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-const AppRoutes = () => {
-  const { currentUser } = useAuth();
-
-  return (
-    <Routes>
-      <Route path="/login" element={
-        currentUser ? <Navigate to="/" replace /> : <LoginPage />
-      } />
-
-      <Route path="/*" element={
-        <ProtectedRoute>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/teaching/*" element={<Teaching />} />
-              <Route path="/tasks/*" element={<Tasks />} />
-              <Route path="/business/*" element={<Business />} />
-            </Routes>
-          </Layout>
-        </ProtectedRoute>
-      } />
-    </Routes>
-  );
-};
-
 const App = () => {
   return (
     <Router>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/teaching/*" element={<Teaching />} />
+          <Route path="/tasks/*" element={<Tasks />} />
+          <Route path="/business/*" element={<Business />} />
+        </Routes>
+      </Layout>
     </Router>
   );
 };

@@ -1,0 +1,132 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules
+// Deploy these rules at: https://console.firebase.google.com/project/qlcv-87/storage/rules
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper function: Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function: Check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Helper function: Validate file size (max 10MB)
+    function isValidSize() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // Helper function: Validate image file types
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // Helper function: Validate document file types
+    function isDocument() {
+      return request.resource.contentType.matches('application/pdf')
+          || request.resource.contentType.matches('application/msword')
+          || request.resource.contentType.matches('application/vnd.openxmlformats.*')
+          || request.resource.contentType.matches('text/.*');
+    }
+
+    // ========================================
+    // USER AVATARS
+    // ========================================
+    match /users/{userId}/avatar.{ext} {
+      // Anyone can read avatars (public)
+      allow read: if true;
+
+      // Only owner can upload/update their avatar
+      allow write: if isOwner(userId)
+                   && isImage()
+                   && isValidSize();
+    }
+
+    // ========================================
+    // PRODUCT IMAGES (Kinh doanh Tương Ớt)
+    // ========================================
+    match /products/{productId}/{fileName} {
+      // Anyone can view product images (public catalog)
+      allow read: if true;
+
+      // Only authenticated users can upload product images
+      allow write: if isAuthenticated()
+                   && isImage()
+                   && isValidSize();
+    }
+
+    // ========================================
+    // TASK ATTACHMENTS (Công việc cơ quan)
+    // ========================================
+    match /tasks/{taskId}/files/{fileName} {
+      // Only authenticated users can read task files
+      allow read: if isAuthenticated();
+
+      // Only authenticated users can upload task files
+      allow write: if isAuthenticated()
+                   && (isDocument() || isImage())
+                   && isValidSize();
+    }
+
+    // ========================================
+    // TEACHING DOCUMENTS (Tài liệu giảng dạy)
+    // ========================================
+    match /teaching/{scheduleId}/documents/{fileName} {
+      // Only authenticated users can read teaching docs
+      allow read: if isAuthenticated();
+
+      // Only authenticated users can upload teaching docs
+      allow write: if isAuthenticated()
+                   && (isDocument() || isImage())
+                   && request.resource.size < 20 * 1024 * 1024; // 20MB for presentations
+    }
+
+    // Partner documents
+    match /teaching/partners/{partnerId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+                   && (isDocument() || isImage())
+                   && isValidSize();
+    }
+
+    // ========================================
+    // BUSINESS DOCUMENTS (Kinh doanh)
+    // ========================================
+
+    // Invoices
+    match /business/invoices/{invoiceId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+                   && (isDocument() || isImage())
+                   && isValidSize();
+    }
+
+    // Contracts
+    match /business/contracts/{contractId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+                   && isDocument()
+                   && isValidSize();
+    }
+
+    // Customer documents
+    match /business/customers/{customerId}/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated()
+                   && (isDocument() || isImage())
+                   && isValidSize();
+    }
+
+    // ========================================
+    // DENY ALL OTHER PATHS
+    // ========================================
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

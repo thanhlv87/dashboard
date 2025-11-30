@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { useFirestore } from '../hooks/useFirestore';
+import { Task, TeachingSchedule, Product } from '../lib/firebase/types';
+import { orderBy, where, Timestamp } from 'firebase/firestore';
 
-const UrgentTaskRow = ({ title, tag, date, status, type }: any) => (
+const UrgentTaskRow = ({ title, tag, date, status }: any) => (
   <div className="flex items-center justify-between py-4 border-b border-border-color last:border-0 hover:bg-surface-light/30 px-2 rounded transition-colors">
     <div className="flex flex-col gap-1 w-1/3">
       <span className="text-sm font-normal text-white truncate">{title}</span>
@@ -47,6 +50,34 @@ const StatCard = ({ icon, label, value, subValue, subColor }: any) => (
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<'schedule' | 'inventory'>('schedule');
 
+  // Fetch urgent tasks (progress < 100, deadline soon)
+  const { data: tasks, loading: tasksLoading } = useFirestore<Task>(
+    'tasks',
+    [orderBy('deadline', 'asc')]
+  );
+
+  // Fetch upcoming teaching schedules
+  const today = Timestamp.now();
+  const { data: schedules, loading: schedulesLoading } = useFirestore<TeachingSchedule>(
+    'teaching',
+    [
+      where('date', '>=', today),
+      orderBy('date', 'asc')
+    ]
+  );
+
+  // Fetch products for inventory
+  const { data: products, loading: productsLoading } = useFirestore<Product>(
+    'business/products',
+    []
+  );
+
+  // Calculate stats
+  const completedTasksThisWeek = tasks.filter(t => t.progress === 100).length;
+  const totalTasksThisWeek = tasks.length;
+  const upcomingSchedules = schedules.slice(0, 5);
+  const lowStockProducts = products.filter(p => p.status === 'low-stock');
+
   return (
     <div className="flex flex-col h-full">
         {/* Header */}
@@ -63,9 +94,9 @@ const Dashboard = () => {
             <div className="flex items-center gap-4">
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-text-muted text-[20px]">search</span>
-                <input 
-                  type="text" 
-                  placeholder="Tìm kiếm nhanh..." 
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm nhanh..."
                   className="bg-surface-light border-none text-white text-sm rounded-lg pl-10 pr-4 py-2.5 w-72 focus:ring-0 placeholder:text-text-muted"
                 />
               </div>
@@ -75,32 +106,34 @@ const Dashboard = () => {
               <button className="size-10 rounded-lg bg-surface-light flex items-center justify-center text-white hover:bg-surface-light/80 transition-colors">
                 <span className="material-symbols-outlined text-[20px]">chat_bubble</span>
               </button>
-              <div className="size-10 rounded-full bg-cover bg-center border border-surface-light" style={{backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuD68TTe31HOAB6-dH0HNPdMJFBp3RA6J_pS-p_VcJIAFIcEuS8R8z_zDMM35dRi0IOzYaiU7m4Kjnl6UTbyIGXlY2n14aJwVeyJsgXoYm8wciDaCXfK1P5mYt-soyqg76nLp4I-_PDPGG2SVMs-0TaU7IN2QAkCH9YiihzJzJEn-241AYCY_4AJh0mWWyM93zVcJE-wsCmH7wEE_a6GmwsGs9xAhrpFalUVEDLHb1FZ5Xw8gFdI279pLKBps6LzcoL9jt9gmTqv1GKd")'}}></div>
+              <div className="size-10 rounded-full bg-surface-light flex items-center justify-center text-white">
+                <span className="material-symbols-outlined">person</span>
+              </div>
             </div>
         </header>
 
         <div className="p-8 flex flex-col gap-6">
             {/* Stats Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <StatCard 
-                    icon="school" 
-                    label="Giảng Dạy" 
-                    value="15 Lớp" 
-                    subValue="+2 so với tháng trước" 
+                <StatCard
+                    icon="school"
+                    label="Giảng Dạy"
+                    value={schedulesLoading ? "..." : `${schedules.length} Lớp`}
+                    subValue={schedulesLoading ? "Đang tải..." : `${upcomingSchedules.length} sắp tới`}
                     subColor="text-[#0bda43]"
                 />
-                <StatCard 
-                    icon="storefront" 
-                    label="Kinh Doanh" 
-                    value="25.6M đ" 
-                    subValue="+15.2% so với tháng trước" 
-                    subColor="text-[#0bda43]"
+                <StatCard
+                    icon="storefront"
+                    label="Kinh Doanh"
+                    value={productsLoading ? "..." : `${products.length} SP`}
+                    subValue={productsLoading ? "Đang tải..." : `${lowStockProducts.length} sắp hết hàng`}
+                    subColor={lowStockProducts.length > 0 ? "text-[#fa5538]" : "text-[#0bda43]"}
                 />
-                <StatCard 
-                    icon="work" 
-                    label="Công Việc" 
-                    value="5/12 Hoàn thành" 
-                    subValue="Trong tuần này" 
+                <StatCard
+                    icon="work"
+                    label="Công Việc"
+                    value={tasksLoading ? "..." : `${completedTasksThisWeek}/${totalTasksThisWeek}`}
+                    subValue="Hoàn thành"
                     subColor="text-text-muted"
                 />
             </div>
@@ -112,24 +145,40 @@ const Dashboard = () => {
                         <div className="flex items-center justify-between mb-2">
                              <h3 className="text-white text-lg font-bold">Công Việc Cần Xử Lý Gấp</h3>
                         </div>
-                        
-                        <div className="flex flex-col">
+
+                        {tasksLoading ? (
+                          <div className="flex items-center justify-center py-8">
+                            <p className="text-text-muted">Đang tải...</p>
+                          </div>
+                        ) : tasks.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-12 text-text-muted">
+                            <span className="material-symbols-outlined text-4xl mb-2">task_alt</span>
+                            <p>Chưa có công việc nào</p>
+                            <p className="text-sm mt-1">Nhấn "Tạo Mới" để thêm công việc</p>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col">
                             <div className="flex items-center justify-between text-xs font-medium text-text-muted pb-3 border-b border-border-color">
                                 <span className="w-1/3 pl-2">Công Việc</span>
                                 <span className="w-1/4">Lĩnh Vực</span>
                                 <span className="w-1/6">Hạn Chót</span>
                                 <span className="w-1/6 text-right pr-2">Tình trạng</span>
                             </div>
-                            <UrgentTaskRow title="Chuẩn bị báo cáo quý" tag="Công việc cơ quan" date="25/12/2023" status="Bắt đầu" />
-                            <UrgentTaskRow title="Soạn giáo án bài 5 An toàn lao động" tag="Giảng dạy" date="26/12/2023" status="Bắt đầu" />
-                            <UrgentTaskRow title="Liên hệ nhà cung cấp chai lọ" tag="Kinh doanh tương ớt" date="27/12/2023" status="Hoàn thành" />
-                            <UrgentTaskRow title="Họp kế hoạch Marketing Quý 1" tag="Kinh doanh tương ớt" date="30/12/2023" status="Bắt đầu" />
-                            <UrgentTaskRow title="Kiểm tra thiết bị PCCC định kỳ" tag="Giảng dạy" date="03/01/2024" status="Bắt đầu" />
-                             <UrgentTaskRow title="Gửi báo giá khóa học mới" tag="Giảng dạy" date="05/01/2024" status="Bắt đầu" />
-                        </div>
-                        <button className="mt-auto w-full py-3 rounded-lg bg-primary text-background-dark font-bold text-sm hover:bg-opacity-90 transition-colors">
-                            Tạo Mới
-                        </button>
+                            {tasks.slice(0, 6).map(task => (
+                              <UrgentTaskRow
+                                key={task.id}
+                                title={task.title}
+                                tag={task.field}
+                                date={task.deadline}
+                                status={task.progress === 100 ? 'Hoàn thành' : 'Đang làm'}
+                              />
+                            ))}
+                          </div>
+                        )}
+
+                        <NavLink to="/tasks" className="mt-auto w-full py-3 rounded-lg bg-primary text-background-dark font-bold text-sm hover:bg-opacity-90 transition-colors text-center">
+                            {tasks.length === 0 ? 'Tạo Mới' : 'Xem Tất Cả'}
+                        </NavLink>
                     </div>
                 </div>
 
@@ -137,74 +186,81 @@ const Dashboard = () => {
                 <div className="lg:col-span-1">
                     <div className="flex flex-col gap-4 rounded-xl border-2 border-primary/80 p-5 bg-surface shadow-lg shadow-primary/5 h-full">
                         <div className="flex bg-surface-light/30 p-1 rounded-lg">
-                            <button 
+                            <button
                                 onClick={() => setActiveTab('schedule')}
                                 className={`flex-1 text-sm font-bold py-2 px-3 rounded-md transition-all ${activeTab === 'schedule' ? 'bg-surface-light text-white shadow-sm' : 'text-text-muted hover:text-white'}`}
                             >
                                 Lịch Giảng Sắp Tới
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setActiveTab('inventory')}
                                 className={`flex-1 text-sm font-bold py-2 px-3 rounded-md transition-all ${activeTab === 'inventory' ? 'bg-surface-light text-white shadow-sm' : 'text-text-muted hover:text-white'}`}
                             >
-                                Tồn Kho Hiện Tại
+                                Tồn Kho
                             </button>
                         </div>
 
                         <div className="flex-1 overflow-y-auto min-h-[300px] flex flex-col gap-1">
                             {activeTab === 'schedule' ? (
-                                <>
-                                    <ScheduleItem day="THG 12" date="28" title="An toàn điện - Công ty ABC" time="08:00 - 11:30" />
-                                    <ScheduleItem day="THG 12" date="29" title="An toàn PCCC - Tòa nhà XYZ" time="14:00 - 16:00" />
-                                    <ScheduleItem day="THG 01" date="02" title="Sơ cứu cơ bản - Xưởng may B" time="09:00 - 11:30" />
-                                    <ScheduleItem day="THG 01" date="05" title="Huấn luyện ATVSLĐ - Nhà máy X" time="09:00 - 12:00" />
-                                    <ScheduleItem day="THG 01" date="08" title="An toàn hóa chất - KCN VSIP" time="08:30 - 16:30" />
-                                </>
+                                schedulesLoading ? (
+                                  <p className="text-text-muted text-center py-4">Đang tải...</p>
+                                ) : upcomingSchedules.length === 0 ? (
+                                  <div className="flex flex-col items-center justify-center py-12 text-text-muted">
+                                    <span className="material-symbols-outlined text-3xl mb-2">event</span>
+                                    <p className="text-sm">Chưa có lịch giảng</p>
+                                  </div>
+                                ) : (
+                                  upcomingSchedules.map(schedule => {
+                                    const date = schedule.date.toDate();
+                                    return (
+                                      <ScheduleItem
+                                        key={schedule.id}
+                                        day={date.toLocaleDateString('vi-VN', { month: 'short' }).toUpperCase()}
+                                        date={date.getDate()}
+                                        title={schedule.location}
+                                        time={`${schedule.startTime} - ${schedule.endTime}`}
+                                      />
+                                    );
+                                  })
+                                )
                             ) : (
-                                <div className="flex flex-col gap-4 py-2">
-                                     <div className="flex flex-col gap-2">
+                                productsLoading ? (
+                                  <p className="text-text-muted text-center py-4">Đang tải...</p>
+                                ) : products.length === 0 ? (
+                                  <div className="flex flex-col items-center justify-center py-12 text-text-muted">
+                                    <span className="material-symbols-outlined text-3xl mb-2">inventory</span>
+                                    <p className="text-sm">Chưa có sản phẩm</p>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col gap-4 py-2">
+                                    {products.slice(0, 3).map(product => (
+                                      <div key={product.id} className="flex flex-col gap-2">
                                         <div className="flex items-center justify-between">
-                                            <p className="text-white font-medium text-sm">Tương ớt Bông Ớt - Cay</p>
+                                            <p className="text-white font-medium text-sm">{product.name}</p>
                                             <div className="flex items-baseline gap-1">
-                                                <p className="text-lg font-bold text-white">150</p>
+                                                <p className="text-lg font-bold text-white">{product.stock}</p>
                                                 <p className="text-xs text-text-muted">chai</p>
                                             </div>
                                         </div>
                                         <div className="w-full bg-surface-light rounded-full h-2">
-                                            <div className="bg-[#fa5538] h-2 rounded-full" style={{ width: '60%' }}></div>
+                                            <div
+                                              className={`h-2 rounded-full ${product.status === 'low-stock' ? 'bg-[#fa5538]' : 'bg-primary'}`}
+                                              style={{ width: `${Math.min(product.stock / 10, 100)}%` }}
+                                            ></div>
                                         </div>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-white font-medium text-sm">Tương ớt Bông Ớt - Siêu Cay</p>
-                                            <div className="flex items-baseline gap-1">
-                                                <p className="text-lg font-bold text-white">100</p>
-                                                <p className="text-xs text-text-muted">chai</p>
-                                            </div>
-                                        </div>
-                                        <div className="w-full bg-surface-light rounded-full h-2">
-                                            <div className="bg-primary h-2 rounded-full" style={{ width: '40%' }}></div>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-white font-medium text-sm">Tương ớt Bông Ớt - Tỏi</p>
-                                            <div className="flex items-baseline gap-1">
-                                                <p className="text-lg font-bold text-white">220</p>
-                                                <p className="text-xs text-text-muted">chai</p>
-                                            </div>
-                                        </div>
-                                        <div className="w-full bg-surface-light rounded-full h-2">
-                                            <div className="bg-primary h-2 rounded-full" style={{ width: '80%' }}></div>
-                                        </div>
-                                    </div>
-                                </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )
                             )}
                         </div>
 
-                        <button className="w-full py-2.5 rounded-lg border border-primary/20 bg-primary/10 text-primary text-sm font-bold hover:bg-primary/20 transition-colors">
+                        <NavLink
+                          to={activeTab === 'schedule' ? '/teaching' : '/business/products'}
+                          className="w-full py-2.5 rounded-lg border border-primary/20 bg-primary/10 text-primary text-sm font-bold hover:bg-primary/20 transition-colors text-center"
+                        >
                             Xem thêm
-                        </button>
+                        </NavLink>
                     </div>
                 </div>
             </div>

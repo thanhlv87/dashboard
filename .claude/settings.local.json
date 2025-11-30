@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(test:*)",
+      "Bash(npm install)",
+      "Bash(npm run build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Complete Firebase integration and production setup\n\n🎉 Major Changes:\n- Integrated Firebase Authentication (Email/Password)\n- Added Firestore Database with security rules\n- Added Firebase Storage with security rules  \n- Implemented real-time data hooks (useFirestore, useStorage)\n\n✨ New Features:\n- Login page with authentication\n- Protected routes with AuthContext\n- Dashboard with real-time Firestore data\n- Empty states for all modules\n- User profile management\n- Logout functionality\n\n🔧 Technical Improvements:\n- TypeScript types for all Firebase collections\n- Custom hooks for Firebase operations\n- Vercel deployment configuration\n- Firebase deployment configuration\n- Environment variables setup\n\n📁 Project Structure:\n- /components - React components\n- /contexts - React contexts (Auth)\n- /hooks - Custom hooks (Firestore, Storage)\n- /lib/firebase - Firebase utilities and types\n- /pages - Main application pages\n\n🛡️ Security:\n- Firestore security rules\n- Storage security rules\n- Authentication required for all routes\n- RBAC ready structure\n\n📚 Documentation:\n- README_SETUP.md - Setup and deployment guide\n- ROADMAP.md - Future features and improvements\n- CHANGELOG.md - Version history\n- firestore.rules - Database security\n- storage.rules - Storage security\n\n🚀 Ready for production deployment on Vercel and Firebase\n\n🤖 Generated with Claude Code\nhttps://claude.com/claude-code\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

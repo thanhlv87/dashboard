@@ -1,0 +1,169 @@
+rules_version = '2';
+
+// Firestore Database Security Rules
+// Deploy these rules at: https://console.firebase.google.com/project/qlcv-87/firestore/rules
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidTimestamp(field) {
+      return request.resource.data[field] is timestamp;
+    }
+
+    // ========================================
+    // USERS COLLECTION
+    // ========================================
+    match /users/{userId} {
+      // Anyone can read user profiles (for display purposes)
+      allow read: if true;
+
+      // Only the user can create/update their own profile
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    // ========================================
+    // TASKS COLLECTION (Công việc cơ quan)
+    // ========================================
+    match /tasks/{taskId} {
+      // Only authenticated users can read tasks
+      allow read: if isAuthenticated();
+
+      // Only authenticated users can create tasks
+      allow create: if isAuthenticated()
+                    && request.resource.data.keys().hasAll(['title', 'createdAt', 'createdBy'])
+                    && request.resource.data.createdBy == request.auth.uid;
+
+      // Task creator or assigned users can update
+      allow update: if isAuthenticated()
+                    && (resource.data.createdBy == request.auth.uid
+                        || request.auth.uid in resource.data.get('assignedTo', []));
+
+      // Only task creator can delete
+      allow delete: if isAuthenticated()
+                    && resource.data.createdBy == request.auth.uid;
+    }
+
+    // Task comments sub-collection
+    match /tasks/{taskId}/comments/{commentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated()
+                            && resource.data.userId == request.auth.uid;
+    }
+
+    // ========================================
+    // TEACHING COLLECTION (Lịch giảng)
+    // ========================================
+    match /teaching/{scheduleId} {
+      // Anyone authenticated can read teaching schedules
+      allow read: if isAuthenticated();
+
+      // Only authenticated users can create schedules
+      allow create: if isAuthenticated()
+                    && request.resource.data.keys().hasAll(['date', 'location', 'createdBy'])
+                    && request.resource.data.createdBy == request.auth.uid;
+
+      // Creator can update/delete
+      allow update, delete: if isAuthenticated()
+                            && resource.data.createdBy == request.auth.uid;
+    }
+
+    // Partners sub-collection
+    match /teaching/partners/{partnerId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated();
+    }
+
+    // ========================================
+    // BUSINESS COLLECTION (Kinh doanh Tương Ớt)
+    // ========================================
+
+    // Products
+    match /business/products/{productId} {
+      // Anyone can read products (public catalog)
+      allow read: if true;
+
+      // Only authenticated users can manage products
+      allow create, update, delete: if isAuthenticated();
+    }
+
+    // Customers
+    match /business/customers/{customerId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+
+    // Orders/Transactions
+    match /business/orders/{orderId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+                    && request.resource.data.keys().hasAll(['customerId', 'total', 'createdAt']);
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+
+    // Revenue records
+    match /business/revenue/{recordId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+
+    // Inventory
+    match /business/inventory/{productId} {
+      allow read: if true; // Public read for stock checking
+      allow write: if isAuthenticated();
+    }
+
+    // ========================================
+    // SETTINGS COLLECTION
+    // ========================================
+    match /settings/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId);
+    }
+
+    // App-wide settings (admin only)
+    match /appSettings/{settingId} {
+      allow read: if isAuthenticated();
+      // TODO: Add admin role check for write
+      allow write: if isAuthenticated();
+    }
+
+    // ========================================
+    // NOTIFICATIONS COLLECTION
+    // ========================================
+    match /notifications/{notificationId} {
+      // Users can only read their own notifications
+      allow read: if isAuthenticated()
+                  && resource.data.userId == request.auth.uid;
+
+      allow create: if isAuthenticated();
+
+      // Users can update (mark as read) their own notifications
+      allow update: if isAuthenticated()
+                    && resource.data.userId == request.auth.uid;
+
+      allow delete: if isAuthenticated()
+                    && resource.data.userId == request.auth.uid;
+    }
+
+    // ========================================
+    // DENY ALL OTHER COLLECTIONS
+    // ========================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

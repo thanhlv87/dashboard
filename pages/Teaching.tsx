@@ -6,6 +6,7 @@ import { TeachingSchedule, Partner } from '../lib/firebase/types';
 import { orderBy, where } from 'firebase/firestore';
 import { AddScheduleModal } from '../components/AddScheduleModal';
 import { EditScheduleModal } from '../components/EditScheduleModal';
+import { ImportExcelModal } from '../components/ImportExcelModal';
 import toast from 'react-hot-toast';
 
 // ========================================
@@ -15,6 +16,7 @@ const CalendarView = () => {
   const navigate = useNavigate();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<TeachingSchedule | null>(null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
@@ -59,6 +61,17 @@ const CalendarView = () => {
       await remove(id);
     } catch (err) {
       console.error('Error deleting schedule:', err);
+      throw err;
+    }
+  };
+
+  const handleImportSchedules = async (schedules: Omit<TeachingSchedule, 'id'>[]) => {
+    try {
+      for (const schedule of schedules) {
+        await add(schedule);
+      }
+    } catch (err) {
+      console.error('Error importing schedules:', err);
       throw err;
     }
   };
@@ -119,13 +132,22 @@ const CalendarView = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary text-background-dark text-sm font-bold hover:opacity-90 transition-opacity"
-        >
-          <span className="material-symbols-outlined">add</span>
-          Thêm Lịch Giảng Mới
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-surface-light hover:bg-surface text-white text-sm font-medium transition-colors"
+          >
+            <span className="material-symbols-outlined">upload_file</span>
+            Import Excel
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-primary text-background-dark text-sm font-bold hover:opacity-90 transition-opacity"
+          >
+            <span className="material-symbols-outlined">add</span>
+            Thêm Lịch Giảng Mới
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-8 h-full">
@@ -280,7 +302,10 @@ const CalendarView = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {schedules.slice(0, 10).map(schedule => (
+                {schedules
+                  .filter(schedule => schedule.date.toDate() >= today) // Only show future schedules
+                  .slice(0, 10)
+                  .map(schedule => (
                   <div
                     key={schedule.id}
                     onClick={() => handleScheduleClick(schedule)}
@@ -333,6 +358,13 @@ const CalendarView = () => {
         onUpdate={handleUpdateSchedule}
         onDelete={handleDeleteSchedule}
       />
+
+      {/* Import Excel Modal */}
+      <ImportExcelModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImport={handleImportSchedules}
+      />
     </div>
   );
 };
@@ -342,12 +374,21 @@ const CalendarView = () => {
 // ========================================
 const PartnersDashboard = () => {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   // Fetch data from Firestore
-  const { data: schedules } = useFirestore<TeachingSchedule>('teaching', [orderBy('date', 'desc')]);
+  const { data: allSchedules } = useFirestore<TeachingSchedule>('teaching', [orderBy('date', 'desc')]);
   const { data: partners } = useFirestore<Partner>('partners', [orderBy('totalClasses', 'desc')]);
 
-  // Calculate statistics from real data
+  // Get available years from schedules
+  const availableYears = Array.from(
+    new Set(allSchedules.map(s => s.date.toDate().getFullYear()))
+  ).sort((a, b) => b - a); // Sort descending
+
+  // Filter schedules by selected year
+  const schedules = allSchedules.filter(s => s.date.toDate().getFullYear() === selectedYear);
+
+  // Calculate statistics from filtered data
   const totalRevenue = schedules.reduce((sum, s) => sum + s.fee, 0);
   const paidRevenue = schedules.filter(s => s.paymentDate).reduce((sum, s) => sum + s.fee, 0);
   const unpaidRevenue = totalRevenue - paidRevenue;
@@ -421,12 +462,32 @@ const PartnersDashboard = () => {
 
   return (
     <div className="flex-1 p-6 lg:p-8 overflow-y-auto">
-      <h1 className="text-white text-3xl font-bold mb-6">Thống kê Đối tác</h1>
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <h1 className="text-white text-3xl font-bold">Thống kê Đối tác</h1>
+
+        {/* Year Selector */}
+        <div className="flex items-center gap-3">
+          <label className="text-text-muted text-sm">Năm:</label>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+            className="px-4 py-2 bg-surface-light border border-border-color rounded-lg text-white focus:outline-none focus:border-primary transition-colors"
+          >
+            {availableYears.length > 0 ? (
+              availableYears.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))
+            ) : (
+              <option value={new Date().getFullYear()}>{new Date().getFullYear()}</option>
+            )}
+          </select>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
         {/* Summary Stats */}
         <div className="lg:col-span-1 bg-surface border border-border-color rounded-xl p-6 flex flex-col gap-6">
-          <h3 className="text-white font-bold text-lg">Tổng cộng {new Date().getFullYear()}</h3>
+          <h3 className="text-white font-bold text-lg">Tổng cộng năm {selectedYear}</h3>
 
           <div className="flex flex-col gap-4 text-center mt-4">
             <div>

@@ -15,6 +15,7 @@ const ProductsView = () => {
   const { data: products, loading, remove, add } = useFirestore<Product>('products', [orderBy('createdAt', 'desc')]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const filteredProducts = products.filter(p =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -134,7 +135,7 @@ const ProductsView = () => {
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         <button className="p-2 hover:text-primary"><span className="material-symbols-outlined text-base">edit</span></button>
-                        <button onClick={() => remove(product.id)} className="p-2 hover:text-red-500"><span className="material-symbols-outlined text-base">delete</span></button>
+                        <button onClick={() => setProductToDelete(product)} className="p-2 hover:text-red-500"><span className="material-symbols-outlined text-base">delete</span></button>
                       </div>
                     </td>
                   </tr>
@@ -151,6 +152,36 @@ const ProductsView = () => {
         onClose={() => setShowAddModal(false)}
         onSubmit={handleAddProduct}
       />
+
+      {/* Delete Confirmation Modal */}
+      {productToDelete && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-surface rounded-xl p-8 max-w-sm w-full border border-border-color">
+            <h2 className="text-xl font-bold text-white mb-4">Xác nhận Xóa</h2>
+            <p className="text-text-muted mb-6">
+              Bạn có chắc chắn muốn xóa sản phẩm "{productToDelete.name}"? Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => setProductToDelete(null)}
+                className="px-4 py-2 rounded-lg bg-surface-light text-white hover:opacity-80"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  remove(productToDelete.id);
+                  setProductToDelete(null);
+                  toast.success('Sản phẩm đã được xóa.');
+                }}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700"
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -183,10 +214,13 @@ const RevenueView = () => {
   const totalProfit = revenueRecords.reduce((sum, r) => sum + r.profit, 0);
 
   // Chart data (group by month) from filtered data
-  const chartData = revenueRecords.slice(0, 8).reverse().map(r => ({
-    name: r.date.toDate().toLocaleDateString('vi-VN', { month: 'short' }),
-    uv: r.revenue
-  }));
+  const chartData = revenueRecords
+    .sort((a, b) => a.date.toDate().getTime() - b.date.toDate().getTime())
+    .slice(-8)
+    .map(r => ({
+      name: r.date.toDate().toLocaleDateString('vi-VN', { month: 'short', day: 'numeric' }),
+      uv: r.revenue
+    }));
 
   return (
     <div className="flex-1 p-8 overflow-y-auto">
@@ -344,6 +378,7 @@ const CustomersView = () => {
   const { data: customers, loading, remove, add } = useFirestore<Customer>('customers', [orderBy('totalSpent', 'desc')]);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState<Customer | null>(null);
 
   const filteredCustomers = customers.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -461,7 +496,7 @@ const CustomersView = () => {
                   <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                     <div className="flex items-center justify-end gap-2">
                       <button className="p-2 text-gray-400 hover:text-primary"><span className="material-symbols-outlined text-xl">edit</span></button>
-                      <button onClick={() => remove(customer.id)} className="p-2 text-gray-400 hover:text-red-500"><span className="material-symbols-outlined text-xl">delete</span></button>
+                      <button onClick={() => setCustomerToDelete(customer)} className="p-2 text-gray-400 hover:text-red-500"><span className="material-symbols-outlined text-xl">delete</span></button>
                     </div>
                   </td>
                 </tr>
@@ -478,6 +513,35 @@ const CustomersView = () => {
         onSubmit={handleAddCustomer}
       />
 
+      {/* Delete Confirmation Modal */}
+      {customerToDelete && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-surface rounded-xl p-8 max-w-sm w-full border border-border-color">
+            <h2 className="text-xl font-bold text-white mb-4">Xác nhận Xóa</h2>
+            <p className="text-text-muted mb-6">
+              Bạn có chắc chắn muốn xóa khách hàng "{customerToDelete.name}"? Hành động này không thể hoàn tác.
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => setCustomerToDelete(null)}
+                className="px-4 py-2 rounded-lg bg-surface-light text-white hover:opacity-80"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  remove(customerToDelete.id);
+                  setCustomerToDelete(null);
+                  toast.success('Khách hàng đã được xóa.');
+                }}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700"
+              >
+                Xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

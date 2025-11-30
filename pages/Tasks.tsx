@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Task } from '../lib/firebase/types';
 import { orderBy } from 'firebase/firestore';
 import { AddTaskModal } from '../components/AddTaskModal';
+import { EditTaskModal } from '../components/EditTaskModal';
 import toast from 'react-hot-toast';
 
 const TaskItem = ({ task, onEdit, onDelete }: { task: Task, onEdit: (task: Task) => void, onDelete: (id: string) => Promise<void> }) => {
@@ -61,9 +62,11 @@ const TaskItem = ({ task, onEdit, onDelete }: { task: Task, onEdit: (task: Task)
 const Tasks = () => {
   const { currentUser } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   // Fetch tasks from Firestore
-  const { data: tasks, loading, error, add, remove } = useFirestore<Task>(
+  const { data: tasks, loading, error, add, remove, update } = useFirestore<Task>(
     'tasks',
     [orderBy('deadline', 'asc')]
   );
@@ -74,6 +77,22 @@ const Tasks = () => {
       setShowAddModal(false);
     } catch (err) {
       console.error('Error adding task:', err);
+    }
+  };
+
+  const handleEditTask = (task: Task) => {
+    setSelectedTask(task);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateTask = async (taskData: Partial<Task>) => {
+    if (!selectedTask) return;
+    try {
+      await update(selectedTask.id, taskData);
+      setShowEditModal(false);
+      setSelectedTask(null);
+    } catch (err) {
+      console.error('Error updating task:', err);
     }
   };
 
@@ -167,7 +186,7 @@ const Tasks = () => {
                 <TaskItem
                   key={task.id}
                   task={task}
-                  onEdit={(task) => {/* TODO: Open edit modal */}}
+                  onEdit={handleEditTask}
                   onDelete={handleDeleteTask}
                 />
               ))
@@ -179,6 +198,17 @@ const Tasks = () => {
           isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
           onSubmit={handleAddTask}
+        />
+
+        {/* Edit Task Modal */}
+        <EditTaskModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedTask(null);
+          }}
+          onSubmit={handleUpdateTask}
+          task={selectedTask}
         />
     </div>
   );

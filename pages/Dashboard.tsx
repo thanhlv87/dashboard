@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { useFirestore } from '../hooks/useFirestore';
 import { Task, TeachingSchedule, Product } from '../lib/firebase/types';
 import { orderBy, where, Timestamp } from 'firebase/firestore';
+import { EditScheduleModal } from '../components/EditScheduleModal';
 
 const UrgentTaskRow = ({ title, tag, date, status }: any) => (
   <div className="flex items-center justify-between py-4 border-b border-border-color last:border-0 hover:bg-surface-light/30 px-2 rounded transition-colors">
@@ -23,16 +24,20 @@ const UrgentTaskRow = ({ title, tag, date, status }: any) => (
   </div>
 );
 
-const ScheduleItem = ({ day, date, title, time }: any) => (
-  <div className="flex items-center gap-3 p-2 hover:bg-surface-light/30 rounded-lg transition-colors">
+const ScheduleItem = ({ day, date, title, time, onClick }: any) => (
+  <div
+    onClick={onClick}
+    className="flex items-center gap-3 p-2 hover:bg-surface-light/30 rounded-lg transition-colors cursor-pointer"
+  >
     <div className="flex flex-col items-center justify-center bg-surface-light p-2 rounded-lg min-w-[50px] h-[54px]">
       <p className="text-white text-xs font-medium uppercase">{day}</p>
       <p className="text-white text-lg font-bold leading-none">{date}</p>
     </div>
-    <div className="flex flex-col justify-center">
+    <div className="flex flex-col justify-center flex-1">
       <p className="text-white font-medium text-sm line-clamp-1">{title}</p>
       <p className="text-xs text-text-muted">{time}</p>
     </div>
+    <span className="material-symbols-outlined text-text-muted text-base">chevron_right</span>
   </div>
 );
 
@@ -49,6 +54,8 @@ const StatCard = ({ icon, label, value, subValue, subColor }: any) => (
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState<'schedule' | 'inventory'>('schedule');
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [selectedSchedule, setSelectedSchedule] = useState<TeachingSchedule | null>(null);
 
   // Fetch urgent tasks (progress < 100, deadline soon)
   const { data: tasks, loading: tasksLoading } = useFirestore<Task>(
@@ -58,7 +65,7 @@ const Dashboard = () => {
 
   // Fetch upcoming teaching schedules
   const today = Timestamp.now();
-  const { data: schedules, loading: schedulesLoading } = useFirestore<TeachingSchedule>(
+  const { data: schedules, loading: schedulesLoading, update, remove } = useFirestore<TeachingSchedule>(
     'teaching',
     [
       where('date', '>=', today),
@@ -77,6 +84,34 @@ const Dashboard = () => {
   const totalTasksThisWeek = tasks.length;
   const upcomingSchedules = schedules.slice(0, 5);
   const lowStockProducts = products.filter(p => p.status === 'low-stock');
+
+  // Handle schedule click
+  const handleScheduleClick = (schedule: TeachingSchedule) => {
+    setSelectedSchedule(schedule);
+    setShowScheduleModal(true);
+  };
+
+  // Handle schedule update
+  const handleUpdateSchedule = async (id: string, data: Partial<TeachingSchedule>) => {
+    try {
+      await update(id, data);
+    } catch (err) {
+      console.error('Error updating schedule:', err);
+      throw err;
+    }
+  };
+
+  // Handle schedule delete
+  const handleDeleteSchedule = async (id: string) => {
+    try {
+      await remove(id);
+      setShowScheduleModal(false);
+      setSelectedSchedule(null);
+    } catch (err) {
+      console.error('Error deleting schedule:', err);
+      throw err;
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -219,6 +254,7 @@ const Dashboard = () => {
                                         date={date.getDate()}
                                         title={schedule.location}
                                         time={`${schedule.startTime} - ${schedule.endTime}`}
+                                        onClick={() => handleScheduleClick(schedule)}
                                       />
                                     );
                                   })
@@ -265,6 +301,20 @@ const Dashboard = () => {
                 </div>
             </div>
         </div>
+
+        {/* Schedule Detail Modal */}
+        {selectedSchedule && (
+          <EditScheduleModal
+            isOpen={showScheduleModal}
+            onClose={() => {
+              setShowScheduleModal(false);
+              setSelectedSchedule(null);
+            }}
+            schedule={selectedSchedule}
+            onUpdate={handleUpdateSchedule}
+            onDelete={handleDeleteSchedule}
+          />
+        )}
     </div>
   );
 };

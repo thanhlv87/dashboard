@@ -35,59 +35,64 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
 
   // Download template Excel file
   const handleDownloadTemplate = () => {
-    const templateData = [
-      {
-        'Ngày giảng (dd/mm/yyyy)': '15/03/2024',
-        'Giờ bắt đầu (HH:mm)': '08:00',
-        'Giờ kết thúc (HH:mm)': '11:30',
-        'Địa điểm': 'Phòng A101',
-        'Đối tác thuê': 'VNEdu',
-        'Công ty': 'Công ty ABC',
-        'Loại học viên': 'Cán bộ',
-        'Số học viên': 25,
-        'Học phí (VNĐ)': 5000000,
-        'Ngày thanh toán (dd/mm/yyyy)': '20/03/2024',
-        'Trạng thái': 'Đã giảng',
-        'Ghi chú': 'Buổi đào tạo An toàn lao động',
-      },
-      {
-        'Ngày giảng (dd/mm/yyyy)': '20/03/2024',
-        'Giờ bắt đầu (HH:mm)': '13:00',
-        'Giờ kết thúc (HH:mm)': '16:30',
-        'Địa điểm': 'Hội trường B',
-        'Đối tác thuê': 'AT Green',
-        'Công ty': 'Công ty XYZ',
-        'Loại học viên': 'Công nhân',
-        'Số học viên': 40,
-        'Học phí (VNĐ)': 8000000,
-        'Ngày thanh toán (dd/mm/yyyy)': '',
-        'Trạng thái': 'Chưa giảng',
-        'Ghi chú': '',
-      },
-    ];
+    try {
+      const templateData = [
+        {
+          'Ngày giảng (dd/mm/yyyy)': '15/03/2024',
+          'Giờ bắt đầu (HH:mm)': '08:00',
+          'Giờ kết thúc (HH:mm)': '11:30',
+          'Địa điểm': 'Phòng A101',
+          'Đối tác thuê': 'VNEdu',
+          'Công ty': 'Công ty ABC',
+          'Loại học viên': 'Cán bộ',
+          'Số học viên': 25,
+          'Học phí (VNĐ)': 5000000,
+          'Ngày thanh toán (dd/mm/yyyy)': '20/03/2024',
+          'Trạng thái': 'Đã giảng',
+          'Ghi chú': 'Buổi đào tạo An toàn lao động',
+        },
+        {
+          'Ngày giảng (dd/mm/yyyy)': '20/03/2024',
+          'Giờ bắt đầu (HH:mm)': '13:00',
+          'Giờ kết thúc (HH:mm)': '16:30',
+          'Địa điểm': 'Hội trường B',
+          'Đối tác thuê': 'AT Green',
+          'Công ty': 'Công ty XYZ',
+          'Loại học viên': 'Công nhân',
+          'Số học viên': 40,
+          'Học phí (VNĐ)': 8000000,
+          'Ngày thanh toán (dd/mm/yyyy)': '',
+          'Trạng thái': 'Chưa giảng',
+          'Ghi chú': '',
+        },
+      ];
 
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Lịch giảng');
+      const ws = XLSX.utils.json_to_sheet(templateData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Lịch giảng');
 
-    // Set column widths
-    ws['!cols'] = [
-      { wch: 22 }, // Ngày giảng
-      { wch: 18 }, // Giờ bắt đầu
-      { wch: 18 }, // Giờ kết thúc
-      { wch: 20 }, // Địa điểm
-      { wch: 20 }, // Đối tác
-      { wch: 20 }, // Công ty
-      { wch: 15 }, // Loại học viên
-      { wch: 12 }, // Số học viên
-      { wch: 15 }, // Học phí
-      { wch: 22 }, // Ngày thanh toán
-      { wch: 15 }, // Trạng thái
-      { wch: 30 }, // Ghi chú
-    ];
+      // Set column widths
+      ws['!cols'] = [
+        { wch: 22 }, // Ngày giảng
+        { wch: 18 }, // Giờ bắt đầu
+        { wch: 18 }, // Giờ kết thúc
+        { wch: 20 }, // Địa điểm
+        { wch: 20 }, // Đối tác
+        { wch: 20 }, // Công ty
+        { wch: 15 }, // Loại học viên
+        { wch: 12 }, // Số học viên
+        { wch: 15 }, // Học phí
+        { wch: 22 }, // Ngày thanh toán
+        { wch: 15 }, // Trạng thái
+        { wch: 30 }, // Ghi chú
+      ];
 
-    XLSX.writeFile(wb, 'Mau_Lich_Giang.xlsx');
-    toast.success('Đã tải file mẫu!');
+      XLSX.writeFile(wb, 'Mau_Lich_Giang.xlsx');
+      toast.success('Đã tải file mẫu!');
+    } catch (error: any) {
+      console.error('Error downloading template:', error);
+      toast.error('Lỗi khi tải file mẫu: ' + (error.message || 'Không xác định'));
+    }
   };
 
   // Parse date from various formats

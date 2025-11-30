@@ -200,7 +200,7 @@ const PartnersDashboard = () => {
 
   // Fetch data from Firestore
   const { data: schedules } = useFirestore<TeachingSchedule>('teaching', [orderBy('date', 'desc')]);
-  const { data: partners } = useFirestore<Partner>('teaching/partners', [orderBy('totalClasses', 'desc')]);
+  const { data: partners } = useFirestore<Partner>('partners', [orderBy('totalClasses', 'desc')]);
 
   // Calculate statistics from real data
   const totalRevenue = schedules.reduce((sum, s) => sum + s.fee, 0);

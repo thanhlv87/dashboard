@@ -79,8 +79,8 @@ service cloud.firestore {
                             && resource.data.createdBy == request.auth.uid;
     }
 
-    // Partners sub-collection
-    match /teaching/partners/{partnerId} {
+    // Partners (Top-level collection)
+    match /partners/{partnerId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
       allow update, delete: if isAuthenticated();

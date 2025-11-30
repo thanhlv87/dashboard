@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, NavLink, useLocation, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './components/LoginPage';
 import Dashboard from './pages/Dashboard';
@@ -180,6 +181,29 @@ const App = () => {
   return (
     <Router>
       <AuthProvider>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: '#28392f',
+              color: '#fff',
+              border: '1px solid #3b5445',
+            },
+            success: {
+              iconTheme: {
+                primary: '#13ec6d',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#fa5538',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
         <AppRoutes />
       </AuthProvider>
     </Router>

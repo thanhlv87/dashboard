@@ -10,11 +10,12 @@
     "deploy:rules": "firebase deploy --only firestore:rules,storage:rules"
   },
   "dependencies": {
+    "firebase": "^12.6.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.9.6",
-    "recharts": "^3.5.1",
-    "firebase": "^12.6.0"
+    "recharts": "^3.5.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

@@ -18,6 +18,10 @@ const CalendarView = () => {
   const [selectedSchedule, setSelectedSchedule] = useState<TeachingSchedule | null>(null);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
+  // Calendar navigation state
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+
   // Fetch schedules from Firestore
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -61,10 +65,30 @@ const CalendarView = () => {
 
   const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
+  // Navigate to previous month
+  const handlePrevMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear(currentYear - 1);
+    } else {
+      setCurrentMonth(currentMonth - 1);
+    }
+    setSelectedDay(null); // Reset selected day when changing month
+  };
+
+  // Navigate to next month
+  const handleNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear(currentYear + 1);
+    } else {
+      setCurrentMonth(currentMonth + 1);
+    }
+    setSelectedDay(null); // Reset selected day when changing month
+  };
+
   // Generate calendar dates for current month
   const currentDate = new Date();
-  const currentMonth = currentDate.getMonth();
-  const currentYear = currentDate.getFullYear();
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
@@ -109,13 +133,19 @@ const CalendarView = () => {
         <div className="flex-1 flex flex-col">
           {/* Calendar Header */}
           <div className="flex items-center justify-center gap-6 mb-6">
-            <button className="flex size-10 items-center justify-center rounded-full hover:bg-surface-light text-white">
+            <button
+              onClick={handlePrevMonth}
+              className="flex size-10 items-center justify-center rounded-full hover:bg-surface-light text-white transition-colors"
+            >
               <span className="material-symbols-outlined">chevron_left</span>
             </button>
-            <p className="text-white text-base font-bold">
-              Tháng {currentMonth + 1} {currentYear}
+            <p className="text-white text-base font-bold min-w-[150px] text-center">
+              Tháng {currentMonth + 1} năm {currentYear}
             </p>
-            <button className="flex size-10 items-center justify-center rounded-full hover:bg-surface-light text-white">
+            <button
+              onClick={handleNextMonth}
+              className="flex size-10 items-center justify-center rounded-full hover:bg-surface-light text-white transition-colors"
+            >
               <span className="material-symbols-outlined">chevron_right</span>
             </button>
           </div>
@@ -335,10 +365,12 @@ const PartnersDashboard = () => {
     return { name: p.name, value: revenue, color: colors[i] };
   });
 
-  // Partner class count data
+  // Partner class count data - Calculate from actual schedules
   const partnerClassCountData = partners.slice(0, 5).map((p, i) => {
     const colors = ['#E0E0E0', '#00E396', '#FEB019', '#FF4560', '#008FFB'];
-    return { name: p.name, value: p.totalClasses, color: colors[i] };
+    const partnerSchedules = schedules.filter(s => s.partner === p.name);
+    const classCount = partnerSchedules.length; // Count actual schedules
+    return { name: p.name, value: classCount, color: colors[i] };
   });
 
   // Payment status data

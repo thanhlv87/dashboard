@@ -156,10 +156,10 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
     reader.onload = (evt) => {
       try {
         const data = evt.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
+        const workbook = XLSX.read(data, { type: 'binary', cellDates: true } as any);
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { cellDates: true, defval: '' });
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { cellDates: true, defval: '' } as any);
 
         setPreviewData(jsonData.slice(0, 5)); // Show first 5 rows
         toast.success(`Đã tải ${jsonData.length} dòng dữ liệu`);
@@ -185,10 +185,10 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
       reader.onload = async (evt) => {
         try {
           const data = evt.target?.result;
-          const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
+          const workbook = XLSX.read(data, { type: 'binary', cellDates: true } as any);
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { cellDates: true, defval: '' });
+          const jsonData: any[] = XLSX.utils.sheet_to_json(worksheet, { cellDates: true, defval: '' } as any);
 
           // Convert Excel data to TeachingSchedule format
           const schedules: Omit<TeachingSchedule, 'id'>[] = [];
@@ -354,20 +354,31 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({ isOpen, onCl
                     </tr>
                   </thead>
                   <tbody>
-                    {previewData.map((row, i) => (
-                      <tr key={i} className="border-b border-border-color/50">
-                        <td className="text-white p-2">{getValue(row, ['Ngày giảng (dd/mm/yyyy)', 'Ngày giảng', 'Date'])}</td>
-                        <td className="text-white p-2">
-                          {getValue(row, ['Giờ bắt đầu (HH:mm)', 'Giờ bắt đầu'])} - {getValue(row, ['Giờ kết thúc (HH:mm)', 'Giờ kết thúc'])}
-                        </td>
-                        <td className="text-white p-2">{getValue(row, ['Đối tác thuê', 'Đối tác', 'Partner'])}</td>
-                        <td className="text-white p-2">{getValue(row, ['Công ty', 'Company'])}</td>
-                        <td className="text-white p-2 text-right">
-                          {parseInt(getValue(row, ['Học phí (VNĐ)', 'Học phí', 'Fee']) || '0').toLocaleString('vi-VN')} ₫
-                        </td>
-                        <td className="text-white p-2">{getValue(row, ['Trạng thái', 'Status'])}</td>
-                      </tr>
-                    ))}
+                    {previewData.map((row, i) => {
+                      const formatDate = (val: any) => {
+                        if (val instanceof Date) return val.toLocaleDateString('vi-VN');
+                        return val;
+                      };
+                      const formatTime = (val: any) => {
+                        if (val instanceof Date) return val.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                        return val;
+                      };
+
+                      return (
+                        <tr key={i} className="border-b border-border-color/50">
+                          <td className="text-white p-2">{formatDate(getValue(row, ['Ngày giảng (dd/mm/yyyy)', 'Ngày giảng', 'Date']))}</td>
+                          <td className="text-white p-2">
+                            {formatTime(getValue(row, ['Giờ bắt đầu (HH:mm)', 'Giờ bắt đầu']))} - {formatTime(getValue(row, ['Giờ kết thúc (HH:mm)', 'Giờ kết thúc']))}
+                          </td>
+                          <td className="text-white p-2">{getValue(row, ['Đối tác thuê', 'Đối tác', 'Partner'])}</td>
+                          <td className="text-white p-2">{getValue(row, ['Công ty', 'Company'])}</td>
+                          <td className="text-white p-2 text-right">
+                            {parseInt(getValue(row, ['Học phí (VNĐ)', 'Học phí', 'Fee']) || '0').toLocaleString('vi-VN')} ₫
+                          </td>
+                          <td className="text-white p-2">{getValue(row, ['Trạng thái', 'Status'])}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

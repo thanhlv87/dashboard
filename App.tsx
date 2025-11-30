@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, NavLink, useLocation, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './components/LoginPage';
-import Dashboard from './pages/Dashboard_new';
+import Dashboard from './pages/Dashboard';
 import Teaching from './pages/Teaching';
 import Tasks from './pages/Tasks';
 import Business from './pages/Business';
